@@ -2343,7 +2343,13 @@ async function generateApplicationPdf() {
     const perm = applicationPdfDateParts(s.permissionDate);
 
     // Request date: spaces immediately before the original 年/月/日 labels.
-    drawText(req.y, 469.8, 67.3, 9, 9.2, 'center');
+    // Year has only ~13pt between the original '申請日' and '年' labels.
+    // Draw it narrowly in that untouched gap so the leading digit never overlaps '日'.
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.font = `${6.0 * SCALE}px ${jpFont}`;
+    ctx.fillText(req.y, 472.8 * SCALE, 67.3 * SCALE);
+    ctx.restore();
     drawText(req.m, 493.0, 67.3, 8, 9.2, 'center');
     drawText(req.d, 516.4, 67.3, 8, 9.2, 'center');
 
