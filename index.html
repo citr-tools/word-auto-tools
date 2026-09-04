@@ -634,6 +634,24 @@
       .header-badge{width:44px;height:44px}
     }
 
+    .app-template-box{
+      margin-bottom:18px;padding:16px;border:1px solid #cdeeea;border-radius:18px;background:var(--primary-soft);
+    }
+    .app-template-title{font-size:15px;font-weight:900;color:#245c57;margin-bottom:4px}
+    .app-template-help{font-size:12px;color:#66817e;line-height:1.55;margin-bottom:12px}
+    .app-template-save-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+    .app-template-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+    .app-template-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px 11px;border:1px solid #c8e4e0;border-radius:14px;background:#fff}
+    .app-template-name{font-weight:900;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .app-template-meta{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .app-template-actions{display:flex;gap:6px}
+    .app-template-empty{font-size:12px;color:var(--muted);padding:6px 2px 0}
+    @media(max-width:520px){
+      .app-template-save-row{grid-template-columns:1fr}
+      .app-template-item{grid-template-columns:1fr}
+      .app-template-actions{display:grid;grid-template-columns:1fr 1fr}
+    }
+
 </style>
 </head>
 <body>
@@ -643,7 +661,7 @@
       <div class="header-main">
         <div class="eyebrow">INFORMATION TEAM</div>
         <h1>情宣部 投稿ツール</h1>
-        <div class="sub">投稿確認から保存・Instagram共有まで、この画面だけで完結します。</div>
+        <div class="sub">投稿確認から保存・Instagram共有まで、このアプリだけで完結します。</div>
       </div>
       <div class="header-badge" aria-hidden="true">情宣</div>
     </header>
@@ -878,9 +896,20 @@
 
     <div id="applicationPanel" class="app-panel">
       <div class="screen-title">Instagram投稿申請書</div>
-      <div class="section-lead">氏名は大きめの文字で出力し、PHS・OF番号は自動で全角にします。WordのPHS・OFの下線とチェックボックスの四角も残したまま出力します。</div>
+      <div class="section-lead">組合執行委員長への投稿申請書作成ページです。</div>
 
       <main class="card">
+
+        <div class="app-template-box">
+          <div class="app-template-title">申請書テンプレート</div>
+          <div class="app-template-help">よく使う入力内容をこの端末に保存できます。</div>
+          <div class="app-template-save-row">
+            <input type="text" id="applicationTemplateName" placeholder="例：木内さん／青年部いつもの設定">
+            <button type="button" class="save-action" id="saveApplicationTemplateBtn">現在の内容を保存</button>
+          </div>
+          <div id="applicationTemplateList" class="app-template-list"></div>
+          <div id="applicationTemplateEmpty" class="app-template-empty">まだテンプレートはありません。</div>
+        </div>
 
         <div class="application-section">
           <div class="field">
@@ -1228,7 +1257,7 @@ document.getElementById('workTabBtn').addEventListener('click', () => switchAppT
 document.getElementById('savedTabBtn').addEventListener('click', () => switchAppTab('saved'));
 document.getElementById('instagramTabBtn').addEventListener('click', () => switchAppTab('instagram'));
 document.getElementById('authorTabBtn').addEventListener('click', () => switchAppTab('author'));
-document.getElementById('applicationTabBtn').addEventListener('click', () => { syncApplicationApplicant(); switchAppTab('application'); });
+document.getElementById('applicationTabBtn').addEventListener('click', () => { syncApplicationApplicant(); renderApplicationTemplates(); switchAppTab('application'); });
 
 // ===== 作成者プロフィール =====
 const AUTHOR_LIST_KEY = 'instagramConfirmAuthors';
@@ -2160,6 +2189,155 @@ function syncApplicationApplicant() {
   }
 }
 
+const APPLICATION_TEMPLATE_KEY = 'instagramApplicationTemplatesV1';
+
+function getApplicationTemplates() {
+  try {
+    const raw = localStorage.getItem(APPLICATION_TEMPLATE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn('申請書テンプレートの読み込みに失敗', e);
+    return [];
+  }
+}
+
+function setApplicationTemplates(items) {
+  localStorage.setItem(APPLICATION_TEMPLATE_KEY, JSON.stringify(items));
+}
+
+function applicationTemplateStateFromForm() {
+  const s = getApplicationFormState();
+  return {
+    managerName: s.managerName,
+    managerDept: s.managerDept,
+    managerContact: s.managerContact,
+    applicantName: s.applicantName,
+    applicantDept: s.applicantDept,
+    applicantContact: s.applicantContact,
+    purpose: s.purpose,
+    accountName: s.accountName,
+    url: s.url,
+    comments: s.comments,
+    privacyConsent: s.privacyConsent,
+    deleteConsent: s.deleteConsent,
+    permissionBy: s.permissionBy
+  };
+}
+
+function applyApplicationTemplateData(data) {
+  if (!data) return;
+  const values = {
+    appManagerName: data.managerName ?? '',
+    appManagerDept: data.managerDept ?? '',
+    appManagerContact: data.managerContact ?? '',
+    appApplicantName: data.applicantName ?? '',
+    appApplicantDept: data.applicantDept ?? '',
+    appApplicantContact: data.applicantContact ?? '',
+    appPurpose: data.purpose ?? '',
+    appAccountName: data.accountName ?? 'Instagram 青年部公式アカウント',
+    appUrl: data.url ?? '',
+    appPermissionBy: data.permissionBy ?? ''
+  };
+  Object.entries(values).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+  });
+
+  if (data.comments) {
+    const radio = document.querySelector(`input[name="appComments"][value="${CSS.escape(data.comments)}"]`);
+    if (radio) radio.checked = true;
+  }
+  document.getElementById('appPrivacyConsent').checked = !!data.privacyConsent;
+  document.getElementById('appDeleteConsent').checked = data.deleteConsent !== false;
+}
+
+function renderApplicationTemplates() {
+  const list = document.getElementById('applicationTemplateList');
+  const empty = document.getElementById('applicationTemplateEmpty');
+  if (!list || !empty) return;
+  const items = getApplicationTemplates();
+  list.innerHTML = '';
+  empty.style.display = items.length ? 'none' : 'block';
+
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'app-template-item';
+
+    const main = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'app-template-name';
+    name.textContent = item.name || '名称なし';
+    const meta = document.createElement('div');
+    meta.className = 'app-template-meta';
+    const d = item.data || {};
+    meta.textContent = [d.managerName, d.applicantName, d.applicantDept].filter(Boolean).join(' / ') || '保存済みテンプレート';
+    main.append(name, meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'app-template-actions';
+
+    const applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.className = 'save-action';
+    applyBtn.textContent = '適用';
+    applyBtn.addEventListener('click', () => {
+      applyApplicationTemplateData(item.data || {});
+      const status = document.getElementById('applicationStatus');
+      status.className = 'status success';
+      status.textContent = `テンプレート「${item.name}」を適用しました。申請日・投稿許可日はそのままです。`;
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'save-action';
+    deleteBtn.textContent = '削除';
+    deleteBtn.addEventListener('click', () => {
+      if (!confirm(`テンプレート「${item.name}」を削除しますか？`)) return;
+      setApplicationTemplates(getApplicationTemplates().filter(x => x.id !== item.id));
+      renderApplicationTemplates();
+    });
+
+    actions.append(applyBtn, deleteBtn);
+    row.append(main, actions);
+    list.appendChild(row);
+  });
+}
+
+function saveCurrentApplicationTemplate() {
+  const input = document.getElementById('applicationTemplateName');
+  const name = (input?.value || '').trim();
+  if (!name) {
+    alert('テンプレート名を入力してください。');
+    input?.focus();
+    return;
+  }
+
+  const items = getApplicationTemplates();
+  const existing = items.find(x => x.name === name);
+  const data = applicationTemplateStateFromForm();
+  if (existing) {
+    if (!confirm(`「${name}」はすでにあります。現在の内容で上書きしますか？`)) return;
+    existing.data = data;
+    existing.updatedAt = Date.now();
+  } else {
+    items.unshift({
+      id: 'apptpl_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+      name,
+      data,
+      updatedAt: Date.now()
+    });
+  }
+  setApplicationTemplates(items);
+  input.value = '';
+  renderApplicationTemplates();
+  const status = document.getElementById('applicationStatus');
+  status.className = 'status success';
+  status.textContent = `申請書テンプレート「${name}」を保存しました。`;
+}
+
+document.getElementById('saveApplicationTemplateBtn').addEventListener('click', saveCurrentApplicationTemplate);
+
 function fmtJPDateValue(value) {
   if (!value) return '';
   const [y,m,d] = value.split('-');
@@ -2430,6 +2608,7 @@ restoreLocalDraft().then(() => {
 renderDocumentHistory();
 renderAuthorProfiles();
 renderAuthorPicker();
+renderApplicationTemplates();
 
 
 let selectedInstagramHistoryRecord = null;
