@@ -309,6 +309,62 @@ async function generateWord() {
       }
     }
 
+    // Wordでは、1つの表の中で「3列の行」と「4列の行」を混在させると
+    // iPhone版Wordなどで列幅が崩れることがある。
+    // そのため写真は「1段 = 1テーブル」にして、各段ごとに列数を固定する。
+    const photoTables = [];
+    if (!imageCells.length) {
+      photoTables.push(new Table({
+        width:{size:PAGE_CONTENT_W,type:WidthType.DXA},
+        layout:TableLayoutType.FIXED,
+        columnWidths:[PAGE_CONTENT_W],
+        borders,
+        rows:[
+          new TableRow({
+            cantSplit:true,
+            children:[
+              new TableCell({
+                width:{size:PAGE_CONTENT_W,type:WidthType.DXA},
+                children:[new Paragraph('写真なし')]
+              })
+            ]
+          })
+        ]
+      }));
+    } else {
+      let photoPos = 0;
+
+      for (const count of wordPlan) {
+        const baseW = Math.floor(PAGE_CONTENT_W / count);
+        const widths = Array.from({length:count}, (_, c) =>
+          c === count - 1 ? PAGE_CONTENT_W - baseW * (count - 1) : baseW
+        );
+
+        const cells = widths.map((w) => {
+          const item = imageCells[photoPos++];
+          return new TableCell({
+            width:{size:w,type:WidthType.DXA},
+            verticalAlign:VerticalAlign.CENTER,
+            children:item ? item.children : [new Paragraph('')],
+            margins:{top:60,bottom:60,left:60,right:60}
+          });
+        });
+
+        photoTables.push(new Table({
+          width:{size:PAGE_CONTENT_W,type:WidthType.DXA},
+          layout:TableLayoutType.FIXED,
+          columnWidths:widths,
+          borders,
+          rows:[
+            new TableRow({
+              cantSplit:true,
+              children:cells
+            })
+          ]
+        }));
+      }
+    }
+
     const children = [
       new Paragraph({
         text:'Instagram 投稿確認書',
@@ -347,39 +403,7 @@ async function generateWord() {
 
       new Paragraph(''),
       sectionTitle('【投稿予定写真】'),
-      new Table({
-        width:{size:PAGE_CONTENT_W,type:WidthType.DXA},
-        layout:TableLayoutType.FIXED,
-        borders,
-        rows:(() => {
-          if (!imageCells.length) {
-            const half = Math.floor(PAGE_CONTENT_W/2);
-            return [new TableRow({children:[
-              new TableCell({width:{size:half,type:WidthType.DXA},children:[new Paragraph('写真なし')]}),
-              new TableCell({width:{size:PAGE_CONTENT_W-half,type:WidthType.DXA},children:[new Paragraph('')]})
-            ]})];
-          }
-
-          const rows = [];
-          let pos = 0;
-          for (const count of wordPlan) {
-            const baseW = Math.floor(PAGE_CONTENT_W / count);
-            const cells = [];
-            for (let c=0; c<count; c++) {
-              const w = (c === count-1) ? PAGE_CONTENT_W - baseW*(count-1) : baseW;
-              const item = imageCells[pos++];
-              cells.push(new TableCell({
-                width:{size:w,type:WidthType.DXA},
-                verticalAlign:VerticalAlign.CENTER,
-                children:item ? item.children : [new Paragraph('')],
-                margins:{top:60,bottom:60,left:60,right:60}
-              }));
-            }
-            rows.push(new TableRow({children:cells}));
-          }
-          return rows;
-        })()
-      }),
+      ...photoTables,
       new Paragraph(''),
       sectionTitle('【写真掲載確認】'),
       new Paragraph('☑ 投稿する写真について、Instagramへの掲載許可を事前に確認済み')
