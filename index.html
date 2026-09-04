@@ -95,14 +95,189 @@
       border:1px solid #bfe5e1;background:#fff;border-radius:12px;padding:9px 12px;
       font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:#24645f
     }
-    .history-card{
-      border:1px solid #bfe7e2;border-radius:20px;padding:16px;margin-top:12px;
-      background:#effcf9;box-shadow:0 4px 14px rgba(0,120,110,.06)
+    .history-view-toggle{
+      display:inline-flex;
+      gap:4px;
+      margin-top:12px;
+      padding:4px;
+      border-radius:13px;
+      background:#e7f3f1;
     }
-    .history-title{font-weight:900;font-size:16px;margin-bottom:5px}
-    .history-meta{font-size:12px;color:#6f8582;line-height:1.6}
-    .history-preview{font-size:13px;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#44585a}
-    .history-actions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+    .history-view-btn{
+      border:0;
+      background:transparent;
+      color:#71827f;
+      border-radius:10px;
+      padding:8px 13px;
+      font:inherit;
+      font-size:12px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .history-view-btn.active{
+      background:#fff;
+      color:var(--primary-dark);
+      box-shadow:0 2px 8px rgba(32,67,65,.08);
+    }
+    .history-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-top:14px;
+    }
+    .history-list .history-card{
+      display:grid;
+      grid-template-columns:96px minmax(0,1fr) auto;
+      align-items:stretch;
+      border-radius:18px;
+    }
+    .history-list .history-thumb{
+      width:96px;
+      height:100%;
+      min-height:112px;
+      aspect-ratio:auto;
+      border-bottom:0;
+      border-right:1px solid #e7eeee;
+    }
+    .history-list .history-body{
+      padding:12px 14px;
+      min-width:0;
+    }
+    .history-list .history-title{
+      font-size:15px;
+      margin-bottom:3px;
+    }
+    .history-list .history-tags{
+      margin-top:7px;
+    }
+    .history-list .history-preview{
+      min-height:0;
+      margin-top:7px;
+      -webkit-line-clamp:2;
+    }
+    .history-list .history-actions{
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      grid-template-columns:none;
+      width:82px;
+      padding:10px;
+    }
+    @media(max-width:480px){
+      .history-list .history-card{
+        grid-template-columns:78px minmax(0,1fr);
+      }
+      .history-list .history-thumb{
+        width:78px;
+        min-height:108px;
+      }
+      .history-list .history-actions{
+        grid-column:1 / -1;
+        width:auto;
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        padding:0 10px 10px;
+      }
+      .history-list .history-preview{
+        display:none;
+      }
+      .history-list .history-tag{
+        padding:4px 7px;
+      }
+    }
+    .history-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+      gap:14px;
+      margin-top:14px;
+      align-items:start;
+    }
+    .history-card{
+      overflow:hidden;
+      border:1px solid #dce7e6;
+      border-radius:22px;
+      background:#fff;
+      box-shadow:0 7px 20px rgba(34,62,66,.06);
+      min-width:0;
+    }
+    .history-thumb{
+      width:100%;
+      aspect-ratio:4/3;
+      background:linear-gradient(145deg,#edf8f6,#f8fbfb);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      border-bottom:1px solid #e7eeee;
+    }
+    .history-thumb img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .history-thumb-empty{
+      width:58px;
+      height:58px;
+      border-radius:18px;
+      background:#dff7f3;
+      color:var(--primary-dark);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:26px;
+      font-weight:900;
+    }
+    .history-body{padding:14px}
+    .history-title{font-weight:900;font-size:16px;line-height:1.45;margin-bottom:6px}
+    .history-meta{font-size:12px;color:#71827f;line-height:1.55}
+    .history-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+    .history-tag{
+      border:1px solid #b8e4df;
+      color:#0d8f83;
+      background:#f4fffd;
+      border-radius:999px;
+      padding:5px 9px;
+      font-size:11px;
+      font-weight:800;
+    }
+    .history-preview{
+      font-size:12px;
+      color:#546466;
+      line-height:1.55;
+      margin-top:10px;
+      display:-webkit-box;
+      -webkit-line-clamp:3;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+      min-height:56px;
+    }
+    .history-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      padding:0 14px 14px;
+    }
+    .history-actions .save-action{
+      width:100%;
+      padding:10px 8px;
+      border-radius:12px;
+      font-size:12px;
+    }
+    @media(max-width:560px){
+      .history-grid{grid-template-columns:1fr;gap:12px}
+      .history-body{padding:12px}
+      .history-title{font-size:15px}
+      .history-actions{padding:0 12px 12px}
+    }
+
+    @media(min-width:561px) and (max-width:900px){
+      .history-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+    }
+
+    @media(min-width:901px){
+      .history-grid{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+    }
     .insta-doc-card{
       border:1px solid #dbe7e6;border-radius:18px;padding:14px;margin-top:10px;
       background:#fff;cursor:pointer;transition:.15s ease;box-shadow:0 3px 10px rgba(0,0,0,.03)
@@ -123,7 +298,7 @@
       transform:translateX(-50%);
       width:min(720px,100%);
       display:grid;
-      grid-template-columns:repeat(3,1fr);
+      grid-template-columns:repeat(4,1fr);
       gap:0;
       margin:0;
       padding:9px 10px calc(8px + env(safe-area-inset-bottom));
@@ -195,10 +370,82 @@
     .section-lead{color:var(--muted);font-size:13px;line-height:1.6;margin:-4px auto 16px;text-align:center}
     .field:first-child{margin-top:0}
     .field > label:first-child{color:#304246}
-    #addDateBtn{
-      border:1px solid #bfe5e1!important;background:#fff!important;color:#24756d!important;
-      border-radius:12px!important;font-weight:800!important
+    .calendar-open-btn{
+      width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;
+      border:1px solid #d8e7e5;border-radius:16px;background:#fbfdfd;padding:13px 14px;
+      text-align:left;cursor:pointer;font:inherit;color:var(--text);
     }
+    .calendar-open-btn:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px rgba(0,184,169,.10)}
+    .calendar-open-title{font-size:14px;font-weight:900}
+    .calendar-open-sub{margin-top:3px;font-size:12px;color:var(--muted)}
+    .calendar-open-icon{font-size:24px}
+    .selected-date-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .selected-date-chip{
+      display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border-radius:999px;
+      background:var(--primary-soft);color:var(--primary-dark);font-size:12px;font-weight:800;
+    }
+    .selected-date-chip button{border:0;background:transparent;color:inherit;padding:0;width:auto;font-size:15px;cursor:pointer}
+    .calendar-overlay{
+      position:fixed;
+      inset:0;
+      z-index:9999;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .calendar-backdrop{
+      position:absolute;
+      inset:0;
+      background:rgba(20,35,38,.35);
+      backdrop-filter:blur(2px);
+      -webkit-backdrop-filter:blur(2px);
+    }
+    .calendar-float{
+      position:relative;
+      z-index:1;
+      width:min(92vw,350px);
+      padding:10px;
+      border:1px solid #d8e7e5;
+      border-radius:18px;
+      background:#fff;
+      box-shadow:0 20px 60px rgba(20,40,45,.24);
+    }
+    .calendar-toolbar{display:grid;grid-template-columns:34px 1fr 34px;align-items:center;gap:6px;margin-bottom:7px}
+    .calendar-nav-btn{
+      width:34px;height:34px;border:1px solid #d8e7e5;border-radius:10px;background:#fff;
+      color:var(--primary-dark);font-size:23px;line-height:1;cursor:pointer;
+    }
+    .calendar-month-label{text-align:center;font-size:14px}
+    .calendar-weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+    .calendar-weekdays{margin-bottom:3px;font-size:10px;color:var(--muted);text-align:center;font-weight:800}
+    .calendar-weekdays span:first-child{color:#c95a68}
+    .calendar-weekdays span:last-child{color:#4c78b5}
+    .calendar-day{
+      aspect-ratio:1/1;
+      min-height:32px;
+      border:0;
+      border-radius:9px;
+      background:transparent;
+      color:var(--text);
+      font:inherit;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .calendar-day:hover{background:#f2f8f7}
+    .calendar-day.other-month{color:#b7c1bf}
+    .calendar-day.today{box-shadow:inset 0 0 0 1px var(--primary)}
+    .calendar-day.selected{background:var(--primary);color:#fff;box-shadow:none}
+    .calendar-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+    @media(max-width:420px){
+      .calendar-float{width:min(94vw,340px);padding:8px}
+      .calendar-day{min-height:30px;font-size:11px;border-radius:8px}
+      .calendar-toolbar{grid-template-columns:32px 1fr 32px}
+      .calendar-nav-btn{width:32px;height:32px}
+    }
+    .calendar-done-btn{margin:0!important;width:100%}
+    .date-help{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5}
     .photo-preview img{border-radius:12px!important;border:1px solid #d6e4e4!important}
     .history-actions .save-action:first-child{background:var(--primary);color:#fff;border-color:var(--primary)}
     #savedPanel .card,#instagramPanel .card{min-height:280px}
@@ -209,6 +456,121 @@
       border-radius:20px;padding:16px;background:linear-gradient(135deg,#fff0f6,#f0fffc);
       border:1px solid #f1d7e2;margin-bottom:16px
     }
+    .author-picker-btn{
+      width:100%;
+      display:grid;
+      grid-template-columns:46px minmax(0,1fr) auto;
+      align-items:center;
+      gap:12px;
+      border:1px solid #d8e7e5;
+      border-radius:16px;
+      background:#fbfdfd;
+      padding:11px 12px;
+      text-align:left;
+      cursor:pointer;
+      font:inherit;
+      color:var(--text);
+    }
+    .author-picker-btn:focus{
+      outline:none;
+      border-color:var(--primary);
+      box-shadow:0 0 0 4px rgba(0,184,169,.10);
+    }
+    .author-picker-avatar{
+      width:46px;height:46px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;
+      background:#dff7f3;color:var(--primary-dark);
+      font-weight:900;font-size:17px;
+    }
+    .author-picker-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+    .author-picker-main{min-width:0}
+    .author-picker-name{font-weight:900;font-size:15px}
+    .author-picker-sub{font-size:11px;color:var(--muted);margin-top:2px}
+    .author-picker-chevron{font-size:28px;color:#8ca09d;line-height:1}
+    .author-picker-menu{
+      margin-top:8px;
+      border:1px solid #d8e7e5;
+      border-radius:16px;
+      background:#fff;
+      overflow:hidden;
+      box-shadow:0 10px 30px rgba(30,60,64,.10);
+    }
+    .author-picker-option{
+      display:grid;
+      grid-template-columns:40px minmax(0,1fr) auto;
+      gap:10px;
+      align-items:center;
+      width:100%;
+      padding:10px 12px;
+      background:#fff;
+      border:0;
+      border-bottom:1px solid #edf2f1;
+      cursor:pointer;
+      text-align:left;
+      font:inherit;
+      color:var(--text);
+    }
+    .author-picker-option:last-child{border-bottom:0}
+    .author-picker-option.active{background:var(--primary-soft)}
+    .author-picker-option-avatar{
+      width:40px;height:40px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;
+      background:#dff7f3;color:var(--primary-dark);
+      font-weight:900;
+    }
+    .author-picker-option-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+    .author-picker-option-name{font-weight:800}
+    .author-picker-option-check{color:var(--primary);font-weight:900}
+    .author-current-card{
+      display:flex;align-items:center;gap:14px;
+      padding:16px;border-radius:20px;
+      background:linear-gradient(135deg,#e9fbf8,#ffffff);
+      border:1px solid #cceee9;
+    }
+    .author-avatar{
+      width:54px;height:54px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      background:var(--primary);color:#fff;
+      font-size:22px;font-weight:900;flex:0 0 auto;
+      box-shadow:0 5px 14px rgba(0,184,169,.18);
+      overflow:hidden;
+    }
+    .author-avatar img,
+    .author-item-avatar img,
+    .header-badge img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .author-current-main{min-width:0}
+    .author-current-name{font-size:20px;font-weight:900;margin-top:2px}
+    .author-add-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+    .author-add-btn{height:100%;padding:0 16px!important}
+    .author-list{display:flex;flex-direction:column;gap:10px}
+    .author-item{
+      display:grid;grid-template-columns:44px minmax(0,1fr) auto;
+      align-items:center;gap:12px;
+      padding:12px;border:1px solid #dce8e6;border-radius:16px;background:#fff;
+    }
+    .author-item.active{
+      border-color:var(--primary);
+      background:var(--primary-soft);
+      box-shadow:0 0 0 3px rgba(0,184,169,.07);
+    }
+    .author-item-avatar{
+      width:44px;height:44px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      background:#dff7f3;color:var(--primary-dark);font-weight:900;font-size:17px;
+      overflow:hidden;
+    }
+    .author-item.active .author-item-avatar{background:var(--primary);color:#fff}
+    .author-item-name{font-size:15px;font-weight:900}
+    .author-item-sub{font-size:11px;color:var(--muted);margin-top:2px}
+    .author-item-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .author-item-actions button{white-space:nowrap}
     .privacy-pill{
       display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:999px;
       background:#eef8f7;color:#50706d;font-size:11px;font-weight:700
@@ -254,6 +616,12 @@
         </svg>
         <span>Instagram</span>
       </button>
+      <button type="button" class="app-tab" id="authorTabBtn" role="tab" aria-selected="false">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" aria-hidden="true">
+          <circle cx="12" cy="8" r="3.5"/><path d="M5 20c.7-4 3.1-6 7-6s6.3 2 7 6"/>
+        </svg>
+        <span>作成者</span>
+      </button>
     </div>
 
     <div id="workPanel" class="app-panel active">
@@ -268,17 +636,52 @@
 
         <div class="field">
           <label>開催日</label>
-          <div id="eventDates">
-          <div class="date-row">
-            <input type="date" class="eventDate" required>
+
+          <button type="button" id="calendarOpenBtn" class="calendar-open-btn">
+            <div>
+              <div class="calendar-open-title">カレンダーから選択</div>
+              <div id="calendarSelectedSummary" class="calendar-open-sub">開催日を選んでください</div>
+            </div>
+            <div class="calendar-open-icon" aria-hidden="true">📅</div>
+          </button>
+
+          <div id="selectedDateChips" class="selected-date-chips"></div>
+
+          <div id="calendarPicker" class="calendar-overlay" style="display:none;">
+            <div class="calendar-backdrop" id="calendarBackdrop"></div>
+            <div class="calendar-float" role="dialog" aria-modal="true" aria-label="開催日を選択">
+              <div class="calendar-toolbar">
+                <button type="button" id="calendarPrevBtn" class="calendar-nav-btn">‹</button>
+                <strong id="calendarMonthLabel" class="calendar-month-label"></strong>
+                <button type="button" id="calendarNextBtn" class="calendar-nav-btn">›</button>
+              </div>
+              <div class="calendar-weekdays">
+                <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+              </div>
+              <div id="calendarGrid" class="calendar-grid"></div>
+              <div class="calendar-actions">
+                <button type="button" id="calendarClearBtn" class="save-action">すべて解除</button>
+                <button type="button" id="calendarDoneBtn" class="submit calendar-done-btn">決定</button>
+              </div>
+            </div>
           </div>
-        </div>
-        <button type="button" id="addDateBtn" style="margin-top:8px;padding:8px 12px;">＋ 開催日を追加</button>
+
+          <div id="eventDates" style="display:none;"></div>
+          <div class="date-help">日付を押すたびに選択・解除できます。押した日付がそのまま開催日になります。</div>
         </div>
 
         <div class="field">
           <label>作成者</label>
-          <input type="text" id="authorName" placeholder="例：小林">
+          <button type="button" id="authorPickerBtn" class="author-picker-btn">
+            <div class="author-picker-avatar" id="authorPickerAvatar">?</div>
+            <div class="author-picker-main">
+              <div class="author-picker-name" id="authorPickerName">作成者を選択</div>
+              <div class="author-picker-sub">タップして作成者を変更</div>
+            </div>
+            <div class="author-picker-chevron" aria-hidden="true">›</div>
+          </button>
+          <input id="authorName" type="hidden">
+          <div id="authorPickerMenu" class="author-picker-menu" style="display:none;"></div>
         </div>
 
         <div class="field">
@@ -317,6 +720,8 @@
           </div>
         </div>
 
+        <button class="submit" id="saveDocumentBtn" type="button">保存する</button>
+
         <button class="submit" id="wordBtn" type="button">Wordをダウンロード</button>
         <button class="submit" id="pdfBtn" type="button" style="margin-top:10px;background:#4b6366;box-shadow:none;">PDFをダウンロード</button>
         <div id="status" class="status"></div>
@@ -336,7 +741,11 @@
           <div class="save-row">
             <div>
               <strong style="font-size:14px;">作成した文書一覧</strong>
-              <div class="save-state">この端末に保存した過去の文書を一覧表示します。</div>
+              <div class="save-state">表示形式をカード / リストから選べます。</div>
+              <div class="history-view-toggle" role="group" aria-label="保存文書の表示形式">
+                <button type="button" class="history-view-btn active" id="historyCardViewBtn">カード</button>
+                <button type="button" class="history-view-btn" id="historyListViewBtn">リスト</button>
+              </div>
             </div>
           </div>
           <div id="documentHistory" style="margin-top:10px;"></div>
@@ -379,6 +788,36 @@
         <div class="save-state" style="margin-top:8px;">ボタンを押すと本文は自動コピーされ、写真は共有画面へ渡されます。Instagram側では本文欄を長押し→貼り付けだけでOKです。</div>
       </main>
     </div>
+
+    <div id="authorPanel" class="app-panel">
+      <div class="screen-title">作成者</div>
+      <div class="section-lead">作成者を登録して、アカウントのように切り替えられます。</div>
+      <main class="card">
+        <div class="author-current-card">
+          <div class="author-avatar" id="currentAuthorAvatar">?</div>
+          <div class="author-current-main">
+            <div class="save-state">現在の作成者</div>
+            <div id="currentAuthorName" class="author-current-name">未選択</div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:16px;">
+          <label for="newAuthorName">作成者を追加</label>
+          <div class="author-add-row">
+            <input id="newAuthorName" type="text" placeholder="例：土屋">
+            <button type="button" class="save-action author-add-btn" id="addAuthorBtn">追加</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>作成者リスト</label>
+          <div class="save-state" style="margin-bottom:10px;">各作成者の「画像変更」からアイコン画像を設定できます。</div>
+          <input type="file" id="authorIconInput" accept="image/*" style="display:none">
+          <div id="authorList" class="author-list"></div>
+          <div id="authorEmpty" class="save-state" style="display:none;">まだ作成者が登録されていません。</div>
+        </div>
+      </main>
+    </div>
   </div>
 </div>
 
@@ -390,36 +829,178 @@ const {
 } = docx;
 
 
-document.getElementById('addDateBtn').addEventListener('click', () => {
+let selectedEventDates = [];
+let calendarViewDate = new Date();
+calendarViewDate.setDate(1);
+
+function isoDateFromParts(year, monthIndex, day) {
+  return `${year}-${String(monthIndex + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+}
+
+function formatDateShort(value) {
+  if (!value) return '';
+  const [y,m,d] = value.split('-').map(Number);
+  return `${y}/${m}/${d}`;
+}
+
+function syncHiddenDateInputs() {
   const wrap = document.getElementById('eventDates');
-  const row = document.createElement('div');
-  row.className = 'date-row';
-  row.style.display = 'flex';
-  row.style.gap = '8px';
-  row.style.marginTop = '8px';
-
-  const input = document.createElement('input');
-  input.type = 'date';
-  input.className = 'eventDate';
-  input.style.flex = '1';
-
-  const remove = document.createElement('button');
-  remove.type = 'button';
-  remove.textContent = '削除';
-  remove.style.width = 'auto';
-  remove.style.padding = '8px 12px';
-  remove.addEventListener('click', () => {
-    row.remove();
-    scheduleLocalSave();
+  wrap.innerHTML = '';
+  [...selectedEventDates].sort().forEach(value => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.className = 'eventDate';
+    input.value = value;
+    wrap.appendChild(input);
   });
+}
 
-  row.appendChild(input);
-  row.appendChild(remove);
-  wrap.appendChild(row);
-  input.addEventListener('change', scheduleLocalSave);
+function renderSelectedDateChips() {
+  const wrap = document.getElementById('selectedDateChips');
+  const summary = document.getElementById('calendarSelectedSummary');
+  const sorted = [...selectedEventDates].sort();
+  wrap.innerHTML = '';
+
+  if (!sorted.length) summary.textContent = '開催日を選んでください';
+  else if (sorted.length === 1) summary.textContent = formatDateShort(sorted[0]);
+  else summary.textContent = `${sorted.length}日選択中`;
+
+  sorted.forEach(value => {
+    const chip = document.createElement('span');
+    chip.className = 'selected-date-chip';
+
+    const text = document.createElement('span');
+    text.textContent = formatDateShort(value);
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = '×';
+    remove.addEventListener('click', () => {
+      selectedEventDates = selectedEventDates.filter(x => x !== value);
+      syncHiddenDateInputs();
+      renderSelectedDateChips();
+      renderCalendar();
+      scheduleLocalSave();
+    });
+
+    chip.append(text, remove);
+    wrap.appendChild(chip);
+  });
+}
+
+function toggleEventDate(value) {
+  if (selectedEventDates.includes(value)) {
+    selectedEventDates = selectedEventDates.filter(x => x !== value);
+  } else {
+    selectedEventDates.push(value);
+  }
+  selectedEventDates = [...new Set(selectedEventDates)].sort();
+  syncHiddenDateInputs();
+  renderSelectedDateChips();
+  renderCalendar();
+  scheduleLocalSave();
+}
+
+function renderCalendar() {
+  const grid = document.getElementById('calendarGrid');
+  const label = document.getElementById('calendarMonthLabel');
+
+  const year = calendarViewDate.getFullYear();
+  const month = calendarViewDate.getMonth();
+  label.textContent = `${year}年 ${month + 1}月`;
+  grid.innerHTML = '';
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const start = new Date(year, month, 1 - firstDay);
+
+  const today = new Date();
+  const todayIso = isoDateFromParts(today.getFullYear(), today.getMonth(), today.getDate());
+
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+
+    const iso = isoDateFromParts(d.getFullYear(), d.getMonth(), d.getDate());
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'calendar-day';
+    btn.textContent = d.getDate();
+
+    if (d.getMonth() !== month) btn.classList.add('other-month');
+    if (iso === todayIso) btn.classList.add('today');
+    if (selectedEventDates.includes(iso)) btn.classList.add('selected');
+
+    btn.addEventListener('click', () => {
+      if (d.getMonth() !== month) {
+        calendarViewDate = new Date(d.getFullYear(), d.getMonth(), 1);
+      }
+      toggleEventDate(iso);
+    });
+
+    grid.appendChild(btn);
+  }
+}
+
+function rebuildDateRows(values) {
+  selectedEventDates = Array.isArray(values)
+    ? [...new Set(values.filter(Boolean))].sort()
+    : [];
+
+  syncHiddenDateInputs();
+  renderSelectedDateChips();
+
+  if (selectedEventDates.length) {
+    const [y,m] = selectedEventDates[0].split('-').map(Number);
+    calendarViewDate = new Date(y, m - 1, 1);
+  }
+  renderCalendar();
+}
+
+document.getElementById('calendarOpenBtn').addEventListener('click', () => {
+  const picker = document.getElementById('calendarPicker');
+  if (picker.style.display === 'none') {
+    if (selectedEventDates.length) {
+      const [y,m] = selectedEventDates[0].split('-').map(Number);
+      calendarViewDate = new Date(y, m - 1, 1);
+    }
+    renderCalendar();
+    picker.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  } else {
+    picker.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+});
+
+document.getElementById('calendarBackdrop').addEventListener('click', () => {
+  document.getElementById('calendarPicker').style.display = 'none';
+  document.body.style.overflow = '';
+});
+
+document.getElementById('calendarPrevBtn').addEventListener('click', () => {
+  calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() - 1, 1);
+  renderCalendar();
+});
+
+document.getElementById('calendarNextBtn').addEventListener('click', () => {
+  calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() + 1, 1);
+  renderCalendar();
+});
+
+document.getElementById('calendarClearBtn').addEventListener('click', () => {
+  selectedEventDates = [];
+  syncHiddenDateInputs();
+  renderSelectedDateChips();
+  renderCalendar();
   scheduleLocalSave();
 });
 
+document.getElementById('calendarDoneBtn').addEventListener('click', () => {
+  document.getElementById('calendarPicker').style.display = 'none';
+  document.body.style.overflow = '';
+});
+
+rebuildDateRows([]);
 
 const photoInput = document.getElementById('photos');
 let selectedPhotos = [];
@@ -459,27 +1040,366 @@ function switchAppTab(tabName) {
   const work = tabName === 'work';
   const saved = tabName === 'saved';
   const instagram = tabName === 'instagram';
+  const author = tabName === 'author';
 
   document.getElementById('workPanel').classList.toggle('active', work);
   document.getElementById('savedPanel').classList.toggle('active', saved);
   document.getElementById('instagramPanel').classList.toggle('active', instagram);
+  document.getElementById('authorPanel').classList.toggle('active', author);
 
   document.getElementById('workTabBtn').classList.toggle('active', work);
   document.getElementById('savedTabBtn').classList.toggle('active', saved);
   document.getElementById('instagramTabBtn').classList.toggle('active', instagram);
+  document.getElementById('authorTabBtn').classList.toggle('active', author);
 
   document.getElementById('workTabBtn').setAttribute('aria-selected', work ? 'true' : 'false');
   document.getElementById('savedTabBtn').setAttribute('aria-selected', saved ? 'true' : 'false');
   document.getElementById('instagramTabBtn').setAttribute('aria-selected', instagram ? 'true' : 'false');
+  document.getElementById('authorTabBtn').setAttribute('aria-selected', author ? 'true' : 'false');
 
   if (saved) renderDocumentHistory();
   if (instagram) renderInstagramExportPanel();
+  if (author) renderAuthorProfiles();
+syncCurrentAuthorToForm();
+refreshHeaderAuthorBadge();
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
 document.getElementById('workTabBtn').addEventListener('click', () => switchAppTab('work'));
 document.getElementById('savedTabBtn').addEventListener('click', () => switchAppTab('saved'));
 document.getElementById('instagramTabBtn').addEventListener('click', () => switchAppTab('instagram'));
+document.getElementById('authorTabBtn').addEventListener('click', () => switchAppTab('author'));
+
+// ===== 作成者プロフィール =====
+const AUTHOR_LIST_KEY = 'instagramConfirmAuthors';
+const CURRENT_AUTHOR_KEY = 'instagramConfirmCurrentAuthor';
+
+function getAuthorProfiles() {
+  try {
+    const value = JSON.parse(localStorage.getItem(AUTHOR_LIST_KEY) || '[]');
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAuthorProfiles(items) {
+  localStorage.setItem(AUTHOR_LIST_KEY, JSON.stringify(items));
+}
+
+function getCurrentAuthorId() {
+  return localStorage.getItem(CURRENT_AUTHOR_KEY) || '';
+}
+
+function authorInitial(name) {
+  const text = String(name || '').trim();
+  return text ? text.slice(0, 1) : '?';
+}
+
+let pendingAuthorIconId = '';
+
+async function resizeAuthorIcon(file) {
+  const img = await new Promise((resolve, reject) => {
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('画像を読み込めませんでした。'));
+    };
+    image.src = url;
+  });
+
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  const scale = Math.max(size / iw, size / ih);
+  const dw = iw * scale;
+  const dh = ih * scale;
+  const dx = (size - dw) / 2;
+  const dy = (size - dh) / 2;
+
+  ctx.drawImage(img, dx, dy, dw, dh);
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+
+function setAvatarContent(element, author) {
+  if (!element) return;
+  element.innerHTML = '';
+
+  if (author && author.iconDataUrl) {
+    const img = document.createElement('img');
+    img.src = author.iconDataUrl;
+    img.alt = author.name || '作成者';
+    element.appendChild(img);
+  } else {
+    element.textContent = author ? authorInitial(author.name) : '?';
+  }
+}
+
+function refreshHeaderAuthorBadge() {
+  const items = getAuthorProfiles();
+  const current = items.find(x => x.id === getCurrentAuthorId());
+  const badge = document.querySelector('.header-badge');
+  if (!badge) return;
+
+  badge.innerHTML = '';
+  if (current && current.iconDataUrl) {
+    const img = document.createElement('img');
+    img.src = current.iconDataUrl;
+    img.alt = current.name || '作成者';
+    badge.appendChild(img);
+  } else {
+    badge.textContent = current ? authorInitial(current.name) : '情宣';
+  }
+}
+
+function chooseAuthorIcon(id) {
+  pendingAuthorIconId = id;
+  const input = document.getElementById('authorIconInput');
+  input.value = '';
+  input.click();
+}
+
+async function applyAuthorIconFile(file) {
+  if (!file || !pendingAuthorIconId) return;
+
+  try {
+    const dataUrl = await resizeAuthorIcon(file);
+    const items = getAuthorProfiles();
+    const target = items.find(x => x.id === pendingAuthorIconId);
+    if (!target) return;
+
+    target.iconDataUrl = dataUrl;
+    saveAuthorProfiles(items);
+    renderAuthorProfiles();
+    refreshHeaderAuthorBadge();
+  } catch (err) {
+    console.error(err);
+    alert('アイコン画像の設定に失敗しました。');
+  } finally {
+    pendingAuthorIconId = '';
+  }
+}
+
+document.getElementById('authorIconInput').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  await applyAuthorIconFile(file);
+});
+
+
+function renderAuthorPicker() {
+  const items = getAuthorProfiles();
+  const currentId = getCurrentAuthorId();
+  const current = items.find(x => x.id === currentId);
+
+  const avatar = document.getElementById('authorPickerAvatar');
+  const name = document.getElementById('authorPickerName');
+  const hidden = document.getElementById('authorName');
+  const menu = document.getElementById('authorPickerMenu');
+
+  if (!avatar || !name || !hidden || !menu) return;
+
+  setAvatarContent(avatar, current);
+  name.textContent = current ? current.name : '作成者を選択';
+  hidden.value = current ? current.name : '';
+
+  menu.innerHTML = '';
+
+  if (!items.length) {
+    const empty = document.createElement('div');
+    empty.className = 'save-state';
+    empty.style.padding = '12px';
+    empty.textContent = '作成者タブで作成者を追加してください。';
+    menu.appendChild(empty);
+    return;
+  }
+
+  for (const item of items) {
+    const option = document.createElement('button');
+    option.type = 'button';
+    option.className = 'author-picker-option' + (item.id === currentId ? ' active' : '');
+
+    const av = document.createElement('div');
+    av.className = 'author-picker-option-avatar';
+    setAvatarContent(av, item);
+
+    const nm = document.createElement('div');
+    nm.className = 'author-picker-option-name';
+    nm.textContent = item.name;
+
+    const check = document.createElement('div');
+    check.className = 'author-picker-option-check';
+    check.textContent = item.id === currentId ? '✓' : '';
+
+    option.append(av, nm, check);
+    option.addEventListener('click', () => {
+      selectAuthorProfile(item.id);
+      menu.style.display = 'none';
+    });
+
+    menu.appendChild(option);
+  }
+}
+
+document.getElementById('authorPickerBtn').addEventListener('click', () => {
+  const menu = document.getElementById('authorPickerMenu');
+  renderAuthorPicker();
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+});
+
+function syncCurrentAuthorToForm() {
+  const items = getAuthorProfiles();
+  const id = getCurrentAuthorId();
+  const current = items.find(x => x.id === id);
+
+  if (current) {
+    document.getElementById('authorName').value = current.name;
+  }
+  refreshHeaderAuthorBadge();
+  renderAuthorPicker();
+}
+
+function selectAuthorProfile(id) {
+  const items = getAuthorProfiles();
+  const current = items.find(x => x.id === id);
+  if (!current) return;
+
+  localStorage.setItem(CURRENT_AUTHOR_KEY, id);
+  document.getElementById('authorName').value = current.name;
+  scheduleLocalSave();
+  renderAuthorProfiles();
+  refreshHeaderAuthorBadge();
+  renderAuthorPicker();
+}
+
+function deleteAuthorProfile(id) {
+  let items = getAuthorProfiles();
+  const target = items.find(x => x.id === id);
+  if (!target) return;
+
+  if (!confirm(`作成者「${target.name}」を削除しますか？`)) return;
+
+  items = items.filter(x => x.id !== id);
+  saveAuthorProfiles(items);
+
+  if (getCurrentAuthorId() === id) {
+    localStorage.removeItem(CURRENT_AUTHOR_KEY);
+  }
+  renderAuthorProfiles();
+  renderAuthorPicker();
+}
+
+function renderAuthorProfiles() {
+  const items = getAuthorProfiles();
+  const currentId = getCurrentAuthorId();
+  const current = items.find(x => x.id === currentId);
+
+  const list = document.getElementById('authorList');
+  const empty = document.getElementById('authorEmpty');
+  const currentName = document.getElementById('currentAuthorName');
+  const currentAvatar = document.getElementById('currentAuthorAvatar');
+
+  if (!list) return;
+
+  list.innerHTML = '';
+  empty.style.display = items.length ? 'none' : 'block';
+
+  currentName.textContent = current ? current.name : '未選択';
+  setAvatarContent(currentAvatar, current);
+
+  for (const item of items) {
+    const row = document.createElement('div');
+    row.className = 'author-item' + (item.id === currentId ? ' active' : '');
+
+    const avatar = document.createElement('div');
+    avatar.className = 'author-item-avatar';
+    setAvatarContent(avatar, item);
+
+    const main = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'author-item-name';
+    name.textContent = item.name;
+    const sub = document.createElement('div');
+    sub.className = 'author-item-sub';
+    sub.textContent = item.id === currentId ? '現在の作成者' : 'タップして切り替え';
+    main.append(name, sub);
+
+    const actions = document.createElement('div');
+    actions.className = 'author-item-actions';
+
+    const useBtn = document.createElement('button');
+    useBtn.type = 'button';
+    useBtn.className = 'save-action';
+    useBtn.textContent = item.id === currentId ? '使用中' : '選択';
+    useBtn.disabled = item.id === currentId;
+    useBtn.addEventListener('click', () => selectAuthorProfile(item.id));
+
+    const iconBtn = document.createElement('button');
+    iconBtn.type = 'button';
+    iconBtn.className = 'save-action';
+    iconBtn.textContent = '画像変更';
+    iconBtn.addEventListener('click', () => chooseAuthorIcon(item.id));
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'save-action';
+    delBtn.textContent = '削除';
+    delBtn.addEventListener('click', () => deleteAuthorProfile(item.id));
+
+    actions.append(useBtn, iconBtn, delBtn);
+    row.append(avatar, main, actions);
+    list.appendChild(row);
+  }
+}
+
+document.getElementById('addAuthorBtn').addEventListener('click', () => {
+  const input = document.getElementById('newAuthorName');
+  const name = input.value.trim();
+  if (!name) {
+    alert('作成者名を入力してください。');
+    return;
+  }
+
+  const items = getAuthorProfiles();
+  if (items.some(x => x.name === name)) {
+    alert('同じ名前の作成者がすでに登録されています。');
+    return;
+  }
+
+  const item = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+    name,
+    iconDataUrl: ''
+  };
+  items.push(item);
+  saveAuthorProfiles(items);
+  input.value = '';
+
+  if (!getCurrentAuthorId()) {
+    localStorage.setItem(CURRENT_AUTHOR_KEY, item.id);
+    document.getElementById('authorName').value = item.name;
+    scheduleLocalSave();
+  }
+  renderAuthorProfiles();
+  renderAuthorPicker();
+});
+
+document.getElementById('newAuthorName').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    document.getElementById('addAuthorBtn').click();
+  }
+});
 
 // ===== 端末内の自動保存（IndexedDB） =====
 // 入力内容・写真はネットへ送信せず、このブラウザのIndexedDBだけに保存します。
@@ -559,7 +1479,7 @@ function setLocalSaveState(text) {
 function getCurrentDraftState() {
   return {
     eventName: document.getElementById('eventName').value,
-    eventDates: [...document.querySelectorAll('.eventDate')].map(el => el.value),
+    eventDates: [...selectedEventDates].sort(),
     authorName: document.getElementById('authorName').value,
     postText: document.getElementById('postText').value,
     photoConsent: document.getElementById('photoConsent').checked,
@@ -605,41 +1525,6 @@ function makeRestoredFile(value, index) {
   return new File([value], name, { type, lastModified });
 }
 
-function rebuildDateRows(values) {
-  const wrap = document.getElementById('eventDates');
-  wrap.innerHTML = '';
-
-  const dates = Array.isArray(values) && values.length ? values : [''];
-  dates.forEach((value, index) => {
-    const row = document.createElement('div');
-    row.className = 'date-row';
-    if (index > 0) row.style.marginTop = '8px';
-
-    const input = document.createElement('input');
-    input.type = 'date';
-    input.className = 'eventDate';
-    input.required = index === 0;
-    input.value = value || '';
-    input.addEventListener('change', scheduleLocalSave);
-    row.appendChild(input);
-
-    if (index > 0) {
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.textContent = '削除';
-      remove.style.width = 'auto';
-      remove.style.padding = '8px 12px';
-      remove.addEventListener('click', () => {
-        row.remove();
-        scheduleLocalSave();
-      });
-      row.appendChild(remove);
-    }
-
-    wrap.appendChild(row);
-  });
-}
-
 async function restoreLocalDraft() {
   try {
     const record = await getLocalDraft();
@@ -652,7 +1537,7 @@ async function restoreLocalDraft() {
     const s = record.state;
 
     document.getElementById('eventName').value = s.eventName || '';
-    rebuildDateRows(s.eventDates || ['']);
+    rebuildDateRows(s.eventDates || []);
     document.getElementById('authorName').value = s.authorName || '';
     document.getElementById('postText').value = s.postText || '';
     document.getElementById('photoConsent').checked = !!s.photoConsent;
@@ -699,6 +1584,27 @@ async function saveDocumentToHistory(kind) {
     console.error('履歴保存失敗', err);
   }
 }
+
+async function saveCurrentDocument() {
+  const eventName = document.getElementById('eventName').value.trim();
+  const postText = document.getElementById('postText').value.trim();
+
+  if (!eventName) {
+    alert('イベント名を入力してください。');
+    return;
+  }
+
+  if (!postText) {
+    alert('Instagram投稿文を入力してください。');
+    return;
+  }
+
+  await saveLocalDraftNow();
+  await saveDocumentToHistory('保存文書');
+  setLocalSaveState('作成した文書一覧に保存しました。');
+  alert('保存しました。');
+}
+
 
 async function getDocumentHistory() {
   const db = await openLocalDb();
@@ -759,34 +1665,113 @@ async function loadHistoryItem(id) {
   switchAppTab('work');
 }
 
+let historyViewMode = localStorage.getItem('historyViewMode') || 'card';
+
+function applyHistoryViewMode() {
+  const wrap = document.getElementById('documentHistory');
+  const cardBtn = document.getElementById('historyCardViewBtn');
+  const listBtn = document.getElementById('historyListViewBtn');
+
+  if (wrap) {
+    wrap.className = historyViewMode === 'list' ? 'history-list' : 'history-grid';
+  }
+  if (cardBtn) cardBtn.classList.toggle('active', historyViewMode === 'card');
+  if (listBtn) listBtn.classList.toggle('active', historyViewMode === 'list');
+}
+
+document.getElementById('historyCardViewBtn').addEventListener('click', () => {
+  historyViewMode = 'card';
+  localStorage.setItem('historyViewMode', historyViewMode);
+  applyHistoryViewMode();
+});
+
+document.getElementById('historyListViewBtn').addEventListener('click', () => {
+  historyViewMode = 'list';
+  localStorage.setItem('historyViewMode', historyViewMode);
+  applyHistoryViewMode();
+});
+
+applyHistoryViewMode();
+
 async function renderDocumentHistory() {
   const wrap = document.getElementById('documentHistory');
   if (!wrap) return;
+
   try {
     const items = await getDocumentHistory();
+
     if (!items.length) {
-      wrap.innerHTML = '<div class="save-state">まだ作成履歴はありません。</div>';
+      wrap.innerHTML = '<div class="save-state">まだ保存した文書はありません。作業タブの「保存する」から追加できます。</div>';
       return;
     }
+
     wrap.innerHTML = '';
+    applyHistoryViewMode();
+
     for (const item of items) {
       const s = item.state || {};
       const card = document.createElement('div');
       card.className = 'history-card';
 
+      // 写真がある場合は1枚目をカード画像にする
+      const thumb = document.createElement('div');
+      thumb.className = 'history-thumb';
+
+      if (Array.isArray(item.photos) && item.photos.length > 0) {
+        try {
+          const file = makeRestoredFile(item.photos[0], 0);
+          const img = document.createElement('img');
+          const url = URL.createObjectURL(file);
+          img.src = url;
+          img.alt = s.eventName || '保存文書';
+          img.onload = () => URL.revokeObjectURL(url);
+          thumb.appendChild(img);
+        } catch (e) {
+          const empty = document.createElement('div');
+          empty.className = 'history-thumb-empty';
+          empty.textContent = '文';
+          thumb.appendChild(empty);
+        }
+      } else {
+        const empty = document.createElement('div');
+        empty.className = 'history-thumb-empty';
+        empty.textContent = '文';
+        thumb.appendChild(empty);
+      }
+
+      const body = document.createElement('div');
+      body.className = 'history-body';
+
       const title = document.createElement('div');
       title.className = 'history-title';
       title.textContent = s.eventName || 'イベント名なし';
 
-      const meta = document.createElement('div');
-      meta.className = 'history-meta';
       const dt = new Date(item.createdAt);
       const dates = (s.eventDates || []).filter(Boolean).join(' / ') || '開催日なし';
-      meta.textContent = `${dates} ｜ ${item.kind || '文書'} ｜ ${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')} ｜ 写真${(item.photos || []).length}枚`;
+
+      const meta = document.createElement('div');
+      meta.className = 'history-meta';
+      meta.textContent =
+        `${dates}\n保存：${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+
+      const tags = document.createElement('div');
+      tags.className = 'history-tags';
+
+      const photoTag = document.createElement('span');
+      photoTag.className = 'history-tag';
+      photoTag.textContent = `写真 ${(item.photos || []).length}枚`;
+
+      const typeTag = document.createElement('span');
+      typeTag.className = 'history-tag';
+      typeTag.textContent = item.kind || '保存文書';
+
+      tags.append(photoTag, typeTag);
 
       const preview = document.createElement('div');
       preview.className = 'history-preview';
       preview.textContent = (s.postText || '投稿文なし').replace(/\s+/g, ' ');
+
+      body.append(title, meta, tags, preview);
 
       const actions = document.createElement('div');
       actions.className = 'history-actions';
@@ -802,16 +1787,20 @@ async function renderDocumentHistory() {
       delBtn.className = 'save-action';
       delBtn.textContent = '削除';
       delBtn.addEventListener('click', async () => {
-        if (confirm('この作成履歴を削除しますか？')) await deleteHistoryItem(item.id);
+        if (confirm('この保存文書を削除しますか？')) {
+          await deleteHistoryItem(item.id);
+          await renderInstagramExportPanel();
+        }
       });
 
       actions.append(openBtn, delBtn);
-      card.append(title, meta, preview, actions);
+      card.append(thumb, body, actions);
       wrap.appendChild(card);
     }
   } catch (err) {
     console.error(err);
-    wrap.innerHTML = '<div class="save-state">作成履歴を読み込めませんでした。</div>';
+    applyHistoryViewMode();
+    wrap.innerHTML = '<div class="save-state">保存文書を読み込めませんでした。</div>';
   }
 }
 
@@ -918,7 +1907,7 @@ async function importDraftFromFile(file) {
     const s = payload.state;
 
     document.getElementById('eventName').value = s.eventName || '';
-    rebuildDateRows(s.eventDates || ['']);
+    rebuildDateRows(s.eventDates || []);
     document.getElementById('authorName').value = s.authorName || '';
     document.getElementById('postText').value = s.postText || '';
     document.getElementById('photoConsent').checked = !!s.photoConsent;
@@ -979,8 +1968,30 @@ document.querySelectorAll('.eventDate').forEach(el => {
 });
 
 // ページを開いたら前回の入力と写真を復元。
-restoreLocalDraft();
+restoreLocalDraft().then(() => {
+  const items = getAuthorProfiles();
+  const authorField = document.getElementById('authorName');
+  let currentId = getCurrentAuthorId();
+
+  if (!currentId && authorField.value.trim()) {
+    const matched = items.find(x => x.name === authorField.value.trim());
+    if (matched) {
+      localStorage.setItem(CURRENT_AUTHOR_KEY, matched.id);
+      currentId = matched.id;
+    }
+  }
+
+  if (!currentId && items.length) {
+    localStorage.setItem(CURRENT_AUTHOR_KEY, items[0].id);
+  }
+
+  syncCurrentAuthorToForm();
+  renderAuthorProfiles();
+  renderAuthorPicker();
+});
 renderDocumentHistory();
+renderAuthorProfiles();
+renderAuthorPicker();
 
 
 let selectedInstagramHistoryRecord = null;
@@ -1164,6 +2175,8 @@ async function exportToInstagram() {
 }
 
 document.getElementById('instagramBtn').addEventListener('click', exportToInstagram);
+
+document.getElementById('saveDocumentBtn').addEventListener('click', saveCurrentDocument);
 
 document.getElementById('wordBtn').addEventListener('click', generateWord);
 document.getElementById('pdfBtn').addEventListener('click', generatePdf);
@@ -1430,7 +2443,6 @@ async function generateWord() {
     const blob = await Packer.toBlob(word);
     const fileName = sanitizeFileName(eventName) + '_Instagram投稿確認書.docx';
     downloadBlob(blob, fileName);
-    await saveDocumentToHistory('Word');
 
     status.className = 'status success';
     status.textContent = 'Word確認書をダウンロードしました。';
@@ -1745,7 +2757,6 @@ async function generatePdf() {
       new Blob([pdfBytes], {type:'application/pdf'}),
       sanitizeFileName(eventName) + '_Instagram投稿確認書.pdf'
     );
-    await saveDocumentToHistory('PDF');
 
     status.className = 'status success';
     status.textContent = 'PDF確認書をダウンロードしました。';
