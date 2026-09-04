@@ -54,7 +54,9 @@
     .status.error{display:block;background:var(--errbg);color:var(--err)}
     .privacy{margin-top:14px;color:var(--muted);font-size:12px;line-height:1.6}
     @media(max-width:480px){.photos{grid-template-columns:1fr}.card{padding:16px;border-radius:16px}}
-  </style>
+  .date-row { display:flex; gap:8px; align-items:center; }
+.date-row input { flex:1; }
+</style>
 </head>
 <body>
 <div class="app">
@@ -63,7 +65,7 @@
       <div class="eyebrow">INFORMATION TEAM</div>
       <h1>情宣部 Instagram投稿確認</h1>
       <div class="sub">
-        入力内容と写真はこの端末のブラウザ内だけで処理され、保存されません。
+        入力内容と写真はGoogle Driveへ保存せず、この端末のブラウザ内だけでWordを生成します。
       </div>
     </header>
 
@@ -76,7 +78,12 @@
 
         <div class="field">
           <label>開催日</label>
-          <input type="date" id="eventDate">
+          <div id="eventDates">
+          <div class="date-row">
+            <input type="date" class="eventDate" required>
+          </div>
+        </div>
+        <button type="button" id="addDateBtn" style="margin-top:8px;padding:8px 12px;">＋ 開催日を追加</button>
         </div>
 
         <div class="field">
@@ -115,11 +122,6 @@
         <button class="submit" id="wordBtn" type="button">Wordをダウンロード</button>
         <button class="submit" id="pdfBtn" type="button" style="margin-top:10px;background:#374151;">PDFをダウンロード</button>
         <div id="status" class="status"></div>
-
-        <div class="privacy">
-          ※ 入力した文章・写真をGoogle Driveへ保存する処理はありません。
-          Word/PDFファイルはこの端末上で生成され、そのままダウンロードされます。
-        </div>
       </form>
     </main>
   </div>
@@ -132,6 +134,32 @@ const {
   VerticalAlign, ShadingType, TableLayoutType
 } = docx;
 
+
+document.getElementById('addDateBtn').addEventListener('click', () => {
+  const wrap = document.getElementById('eventDates');
+  const row = document.createElement('div');
+  row.className = 'date-row';
+  row.style.display = 'flex';
+  row.style.gap = '8px';
+  row.style.marginTop = '8px';
+
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.className = 'eventDate';
+  input.style.flex = '1';
+
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.textContent = '削除';
+  remove.style.width = 'auto';
+  remove.style.padding = '8px 12px';
+  remove.addEventListener('click', () => row.remove());
+
+  row.appendChild(input);
+  row.appendChild(remove);
+  wrap.appendChild(row);
+});
+
 document.getElementById('wordBtn').addEventListener('click', generateWord);
 document.getElementById('pdfBtn').addEventListener('click', generatePdf);
 
@@ -140,13 +168,16 @@ async function generateWord() {
   const status = document.getElementById('status');
 
   const eventName = document.getElementById('eventName').value.trim();
-  const eventDate = document.getElementById('eventDate').value;
+  const eventDates = [...document.querySelectorAll('.eventDate')]
+    .map(el => el.value)
+    .filter(Boolean);
+  const eventDateText = eventDates.map(formatDate).join('、');
   const authorName = document.getElementById('authorName').value.trim();
   const postText = document.getElementById('postText').value.trim();
   const notes = document.getElementById('notes').value.trim();
   const consent = document.getElementById('photoConsent').checked;
 
-  if (!eventName || !postText || !consent) {
+  if (!eventName || eventDates.length === 0 || !postText || !consent) {
     status.className = 'status error';
     status.textContent = '必須項目を確認してください。';
     return;
@@ -213,7 +244,7 @@ async function generateWord() {
 
     const infoRows = [
       ['イベント名', eventName],
-      ['開催日', formatDate(eventDate)],
+      ['開催日', eventDateText],
       ['作成者', authorName]
     ].map(([a,b]) => new TableRow({
       children:[
@@ -371,13 +402,16 @@ async function generatePdf() {
   const status = document.getElementById('status');
 
   const eventName = document.getElementById('eventName').value.trim();
-  const eventDate = document.getElementById('eventDate').value;
+  const eventDates = [...document.querySelectorAll('.eventDate')]
+    .map(el => el.value)
+    .filter(Boolean);
+  const eventDateText = eventDates.map(formatDate).join('、');
   const authorName = document.getElementById('authorName').value.trim();
   const postText = document.getElementById('postText').value.trim();
   const notes = document.getElementById('notes').value.trim();
   const consent = document.getElementById('photoConsent').checked;
 
-  if (!eventName || !postText || !consent) {
+  if (!eventName || eventDates.length === 0 || !postText || !consent) {
     status.className = 'status error';
     status.textContent = '必須項目を確認してください。';
     return;
@@ -461,7 +495,7 @@ async function generatePdf() {
     y -= 28;
 
     row('イベント名', eventName);
-    row('開催日', formatDate(eventDate));
+    row('開催日', eventDateText);
     row('作成者', authorName);
 
     section('【Instagram 投稿予定文】');
