@@ -125,7 +125,7 @@
           <input type="file" id="photos" accept="image/*" multiple>
         </label>
         <div id="photoCount" style="margin-top:8px;font-size:13px;color:#6b7280;">選択した写真：0枚 / 10枚</div>
-        <div style="margin-top:3px;font-size:12px;color:#9ca3af;">10枚選択時は 3枚・3枚・4枚で配置されます。</div>
+        <div style="margin-top:3px;font-size:12px;color:#9ca3af;">10枚選択時は 3枚・3枚・4枚で配置されます。写真はトリミングせず全体を表示します。</div>
         <div id="photoPreview" class="photo-preview"></div>
           <label class="consent">
             <input type="checkbox" id="photoConsent" required>
@@ -246,12 +246,6 @@ async function generateWord() {
     const INFO_LABEL_W = 2200;
     const INFO_VALUE_W = PAGE_CONTENT_W - INFO_LABEL_W;
     const PHOTO_CELL_W = Math.floor(PAGE_CONTENT_W / 2); // その他の表用
-
-    const imageFiles = [];
-    for (let i = 1; i <= 4; i++) {
-      const f = document.getElementById('photo' + i).files[0];
-      if (f) imageFiles.push(f);
-    }
 
     const imageCells = [];
     const wordPhotoCount = selectedPhotos.length;
@@ -634,7 +628,12 @@ async function generatePdf() {
 
       // 行ごとに、その列数に合った高さを使う。
       // 4列行は幅が狭いため、高さも小さくして見切れを防ぐ。
-      const rowHeights = plan.map(count => count === 4 ? 180 : 220);
+      const rowHeights = plan.map(count => {
+        const colGap = 14;
+        const cellW = (CONTENT_W - colGap * (count - 1)) / count;
+        const tileH = (cellW - 8) * 9 / 16;
+        return Math.max(145, tileH + 24);
+      });
       const needed = 60 + rowHeights.reduce((a,b)=>a+b,0) + rowGap * Math.max(0, plan.length-1);
 
       // 写真と確認欄を同じページに押し込みすぎない。
@@ -655,30 +654,25 @@ async function generatePdf() {
           const img = loadedImages[imageIndex++];
           const x = M + c * (cellW + colGap);
 
-          // 画像全体が必ずセル内に収まるcontain方式。
-          const maxW = cellW - 10;
-          const maxH = cellH - 10;
-          const scale = Math.min(
-            maxW / img.naturalWidth,
-            maxH / img.naturalHeight
-          );
-          const w = Math.max(1, img.naturalWidth * scale);
-          const h = Math.max(1, img.naturalHeight * scale);
+          // 写真は絶対にトリミングしない。
+          // 全体が見える「contain」で固定枠の中に収める。
+          // 同じ縦横比の写真なら、どの段でも同じ表示サイズになる。
+          const boxW = cellW - 8;
+          const boxH = boxW * 9 / 16;
+          const boxX = x + (cellW - boxW) / 2;
+          const boxY = rowY + (cellH - boxH) / 2;
 
-          p.ctx.save();
-          // 念のためセル外へ描画されないようクリップ
-          p.ctx.beginPath();
-          p.ctx.rect(x, rowY, cellW, cellH);
-          p.ctx.clip();
+          const iw = img.naturalWidth || img.width;
+          const ih = img.naturalHeight || img.height;
 
-          p.ctx.drawImage(
-            img,
-            x + (cellW - w) / 2,
-            rowY + (cellH - h) / 2,
-            w,
-            h
-          );
-          p.ctx.restore();
+          // contain: 全体を必ず表示。切り抜き・変形なし。
+          const scale = Math.min(boxW / iw, boxH / ih);
+          const drawW = iw * scale;
+          const drawH = ih * scale;
+          const drawX = boxX + (boxW - drawW) / 2;
+          const drawY = boxY + (boxH - drawH) / 2;
+
+          p.ctx.drawImage(img, drawX, drawY, drawW, drawH);
         }
 
         p.y += cellH;
