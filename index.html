@@ -2272,7 +2272,7 @@ function renderApplicationTemplates() {
     const meta = document.createElement('div');
     meta.className = 'app-template-meta';
     const d = item.data || {};
-    meta.textContent = [d.managerName, d.applicantName, d.applicantDept].filter(Boolean).join(' / ') || '保存済みテンプレート';
+    meta.textContent = [d.managerName, d.applicantName].filter(Boolean).join(' / ') || '保存済みテンプレート';
     main.append(name, meta);
 
     const actions = document.createElement('div');
