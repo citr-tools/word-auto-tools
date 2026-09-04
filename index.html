@@ -932,6 +932,11 @@
           <input type="file" id="authorIconInput" accept="image/*" style="display:none">
           <div id="authorList" class="author-list"></div>
           <div id="authorEmpty" class="save-state" style="display:none;">まだ作成者が登録されていません。</div>
+          <div class="save-row" style="margin-top:12px;">
+            <button type="button" class="save-action" id="exportAuthorsBtn">作成者を書き出す</button>
+            <button type="button" class="save-action" id="importAuthorsBtn">作成者を読み込む</button>
+            <input type="file" id="importAuthorsFile" accept=".json,application/json" style="display:none">
+          </div>
         </div>
       </main>
     </div>
@@ -951,6 +956,11 @@
           </div>
           <div id="applicationTemplateList" class="app-template-list"></div>
           <div id="applicationTemplateEmpty" class="app-template-empty">まだテンプレートはありません。</div>
+          <div class="save-row" style="margin-top:12px;">
+            <button type="button" class="save-action" id="exportApplicationTemplatesBtn">テンプレートを書き出す</button>
+            <button type="button" class="save-action" id="importApplicationTemplatesBtn">テンプレートを読み込む</button>
+            <input type="file" id="importApplicationTemplatesFile" accept=".json,application/json" style="display:none">
+          </div>
         </div>
 
         <div class="application-section">
@@ -1578,6 +1588,12 @@ function renderAuthorProfiles() {
     useBtn.disabled = item.id === currentId;
     useBtn.addEventListener('click', () => selectAuthorProfile(item.id));
 
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'save-action';
+    editBtn.textContent = '編集';
+    editBtn.addEventListener('click', () => editAuthorProfile(item.id));
+
     const iconBtn = document.createElement('button');
     iconBtn.type = 'button';
     iconBtn.className = 'save-action';
@@ -1590,11 +1606,63 @@ function renderAuthorProfiles() {
     delBtn.textContent = '削除';
     delBtn.addEventListener('click', () => deleteAuthorProfile(item.id));
 
-    actions.append(useBtn, iconBtn, delBtn);
+    actions.append(useBtn, editBtn, iconBtn, delBtn);
     row.append(avatar, main, actions);
     list.appendChild(row);
   }
 }
+
+function editAuthorProfile(id) {
+  const items = getAuthorProfiles();
+  const item = items.find(x => x.id === id);
+  if (!item) return;
+
+  const displayName = prompt('表示名（苗字）', authorDisplayName(item));
+  if (displayName === null) return;
+  const trimmedDisplayName = displayName.trim();
+  if (!trimmedDisplayName) { alert('表示名（苗字）を入力してください。'); return; }
+  if (items.some(x => x.id !== id && authorDisplayName(x) === trimmedDisplayName)) {
+    alert('同じ表示名の作成者がすでに登録されています。'); return;
+  }
+
+  const name = prompt('氏名（フルネーム）', item.name || ''); if (name === null) return;
+  if (!name.trim()) { alert('氏名（フルネーム）を入力してください。'); return; }
+  const hospital = prompt('病院名', item.hospital || ''); if (hospital === null) return;
+  const department = prompt('所属', item.department || ''); if (department === null) return;
+  const phs = prompt('PHS番号', item.phs || ''); if (phs === null) return;
+  const phone = prompt('電話番号', item.phone || ''); if (phone === null) return;
+  const email = prompt('メールアドレス', item.email || ''); if (email === null) return;
+
+  Object.assign(item, { displayName: trimmedDisplayName, name: name.trim(), hospital: hospital.trim(), department: department.trim(), phs: phs.trim(), phone: phone.trim(), email: email.trim() });
+  saveAuthorProfiles(items);
+  if (getCurrentAuthorId() === id) document.getElementById('authorName').value = item.name;
+  renderAuthorProfiles(); refreshHeaderAuthorBadge(); renderAuthorPicker(); scheduleLocalSave();
+}
+
+function downloadJsonFile(filename, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+document.getElementById('exportAuthorsBtn').addEventListener('click', () => {
+  downloadJsonFile('情宣部_作成者バックアップ.json', { type:'instagram-confirm-authors', version:1, authors:getAuthorProfiles(), currentAuthorId:getCurrentAuthorId() });
+});
+document.getElementById('importAuthorsBtn').addEventListener('click', () => document.getElementById('importAuthorsFile').click());
+document.getElementById('importAuthorsFile').addEventListener('change', async e => {
+  const file=e.target.files?.[0]; if(!file) return;
+  try {
+    const data=JSON.parse(await file.text()); const authors=Array.isArray(data)?data:data.authors;
+    if(!Array.isArray(authors)) throw new Error('形式');
+    if(!confirm(`作成者 ${authors.length}件を読み込み、現在の作成者リストを置き換えますか？`)) return;
+    saveAuthorProfiles(authors);
+    if(data.currentAuthorId && authors.some(x=>x.id===data.currentAuthorId)) localStorage.setItem(CURRENT_AUTHOR_KEY,data.currentAuthorId);
+    else if(authors.length) localStorage.setItem(CURRENT_AUTHOR_KEY,authors[0].id); else localStorage.removeItem(CURRENT_AUTHOR_KEY);
+    syncCurrentAuthorToForm(); renderAuthorProfiles(); renderAuthorPicker(); alert('作成者を読み込みました。');
+  } catch(err) { alert('作成者ファイルを読み込めませんでした。'); }
+  finally { e.target.value=''; }
+});
 
 document.getElementById('addAuthorBtn').addEventListener('click', () => {
   const displayName = document.getElementById('newAuthorDisplayName').value.trim();
@@ -2351,6 +2419,18 @@ function renderApplicationTemplates() {
       status.textContent = `テンプレート「${item.name}」を適用しました。申請日・投稿許可日はそのままです。`;
     });
 
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'save-action';
+    editBtn.textContent = '編集';
+    editBtn.addEventListener('click', () => {
+      applyApplicationTemplateData(item.data || {});
+      document.getElementById('applicationTemplateName').value = item.name || '';
+      const status = document.getElementById('applicationStatus');
+      status.className = 'status success';
+      status.textContent = `テンプレート「${item.name}」を編集用に読み込みました。修正後「現在の内容を保存」で上書きできます。`;
+    });
+
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
     deleteBtn.className = 'save-action';
@@ -2361,7 +2441,7 @@ function renderApplicationTemplates() {
       renderApplicationTemplates();
     });
 
-    actions.append(applyBtn, deleteBtn);
+    actions.append(applyBtn, editBtn, deleteBtn);
     row.append(main, actions);
     list.appendChild(row);
   });
@@ -2400,6 +2480,23 @@ function saveCurrentApplicationTemplate() {
 }
 
 document.getElementById('saveApplicationTemplateBtn').addEventListener('click', saveCurrentApplicationTemplate);
+
+document.getElementById('exportApplicationTemplatesBtn').addEventListener('click', () => {
+  downloadJsonFile('情宣部_申請書テンプレートバックアップ.json', { type:'instagram-application-templates', version:1, templates:getApplicationTemplates() });
+});
+document.getElementById('importApplicationTemplatesBtn').addEventListener('click', () => document.getElementById('importApplicationTemplatesFile').click());
+document.getElementById('importApplicationTemplatesFile').addEventListener('change', async e => {
+  const file=e.target.files?.[0]; if(!file) return;
+  try {
+    const data=JSON.parse(await file.text()); const templates=Array.isArray(data)?data:data.templates;
+    if(!Array.isArray(templates)) throw new Error('形式');
+    if(!confirm(`申請書テンプレート ${templates.length}件を読み込み、現在のテンプレートを置き換えますか？`)) return;
+    setApplicationTemplates(templates); renderApplicationTemplates();
+    const status=document.getElementById('applicationStatus'); status.className='status success'; status.textContent='申請書テンプレートを読み込みました。';
+  } catch(err) { alert('テンプレートファイルを読み込めませんでした。'); }
+  finally { e.target.value=''; }
+});
+
 
 function fmtJPDateValue(value) {
   if (!value) return '';
