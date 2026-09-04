@@ -1566,14 +1566,7 @@ function renderAuthorProfiles() {
     const name = document.createElement('div');
     name.className = 'author-item-name';
     name.textContent = authorDisplayName(item);
-    const sub = document.createElement('div');
-    sub.className = 'author-item-sub';
-    sub.textContent = [
-      item.name || '',
-      item.hospital || '',
-      item.department || ''
-    ].filter(Boolean).join(' / ') || (item.id === currentId ? '現在の作成者' : 'タップして切り替え');
-    main.append(name, sub);
+    main.append(name);
 
     const actions = document.createElement('div');
     actions.className = 'author-item-actions';
