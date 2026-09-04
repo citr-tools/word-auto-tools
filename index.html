@@ -56,6 +56,13 @@
     @media(max-width:480px){.photos{grid-template-columns:1fr}.card{padding:16px;border-radius:16px}}
   .date-row { display:flex; gap:8px; align-items:center; }
 .date-row input { flex:1; }
+.local-note{
+  margin-top:10px;
+  font-size:12px;
+  color:#6b7280;
+  text-align:center;
+  line-height:1.5;
+}
 </style>
 </head>
 <body>
@@ -65,7 +72,7 @@
       <div class="eyebrow">INFORMATION TEAM</div>
       <h1>情宣部 Instagram投稿確認</h1>
       <div class="sub">
-        入力内容と写真はGoogle Driveへ保存せず、この端末のブラウザ内だけでWordを生成します。
+        Instagram投稿確認書をWordまたはPDFで作成できます。
       </div>
     </header>
 
@@ -122,6 +129,7 @@
         <button class="submit" id="wordBtn" type="button">Wordをダウンロード</button>
         <button class="submit" id="pdfBtn" type="button" style="margin-top:10px;background:#374151;">PDFをダウンロード</button>
         <div id="status" class="status"></div>
+        <div class="local-note">入力内容・写真はアップロードされず、端末上で処理されます。</div>
       </form>
     </main>
   </div>
@@ -189,6 +197,12 @@ async function generateWord() {
   status.textContent = 'この端末内でWordを作成しています…';
 
   try {
+    // A4縦・左右余白15mmで使える本文幅を固定
+    const PAGE_CONTENT_W = 9300;
+    const INFO_LABEL_W = 2200;
+    const INFO_VALUE_W = PAGE_CONTENT_W - INFO_LABEL_W;
+    const PHOTO_CELL_W = Math.floor(PAGE_CONTENT_W / 2);
+
     const imageFiles = [];
     for (let i = 1; i <= 4; i++) {
       const f = document.getElementById('photo' + i).files[0];
@@ -233,14 +247,6 @@ async function generateWord() {
       insideHorizontal:{style:BorderStyle.SINGLE,size:1,color:'888888'},
       insideVertical:{style:BorderStyle.SINGLE,size:1,color:'888888'}
     };
-
-    // A4縦・左右余白15mmで使える本文幅を固定（約 9300 DXA）
-    // iPhone版Word/Quick Lookではpercentage/autofit表が極端に潰れることがあるため、
-    // すべてDXA固定幅 + FIXEDレイアウトで作成する。
-    const PAGE_CONTENT_W = 9300;
-    const INFO_LABEL_W = 2200;
-    const INFO_VALUE_W = PAGE_CONTENT_W - INFO_LABEL_W;
-    const PHOTO_CELL_W = Math.floor(PAGE_CONTENT_W / 2);
 
     const infoRows = [
       ['イベント名', eventName],
@@ -384,7 +390,7 @@ async function generateWord() {
     downloadBlob(blob, fileName);
 
     status.className = 'status success';
-    status.textContent = 'Word確認書をダウンロードしました。Google Driveには保存していません。';
+    status.textContent = 'Word確認書をダウンロードしました。';
 
   } catch (err) {
     console.error(err);
