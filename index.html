@@ -1617,28 +1617,20 @@ function editAuthorProfile(id) {
   const item = items.find(x => x.id === id);
   if (!item) return;
 
-  const displayName = prompt('表示名（苗字）', authorDisplayName(item));
-  if (displayName === null) return;
-  const trimmedDisplayName = displayName.trim();
-  if (!trimmedDisplayName) { alert('表示名（苗字）を入力してください。'); return; }
-  if (items.some(x => x.id !== id && authorDisplayName(x) === trimmedDisplayName)) {
-    alert('同じ表示名の作成者がすでに登録されています。'); return;
-  }
+  document.getElementById('newAuthorDisplayName').value = authorDisplayName(item);
+  document.getElementById('newAuthorName').value = item.name || '';
+  document.getElementById('newAuthorHospital').value = item.hospital || '';
+  document.getElementById('newAuthorDepartment').value = item.department || '';
+  document.getElementById('newAuthorPhs').value = item.phs || '';
+  document.getElementById('newAuthorPhone').value = item.phone || '';
+  document.getElementById('newAuthorEmail').value = item.email || '';
 
-  const name = prompt('氏名（フルネーム）', item.name || ''); if (name === null) return;
-  if (!name.trim()) { alert('氏名（フルネーム）を入力してください。'); return; }
-  const hospital = prompt('病院名', item.hospital || ''); if (hospital === null) return;
-  const department = prompt('所属', item.department || ''); if (department === null) return;
-  const phs = prompt('PHS番号', item.phs || ''); if (phs === null) return;
-  const phone = prompt('電話番号', item.phone || ''); if (phone === null) return;
-  const email = prompt('メールアドレス', item.email || ''); if (email === null) return;
-
-  Object.assign(item, { displayName: trimmedDisplayName, name: name.trim(), hospital: hospital.trim(), department: department.trim(), phs: phs.trim(), phone: phone.trim(), email: email.trim() });
-  saveAuthorProfiles(items);
-  if (getCurrentAuthorId() === id) document.getElementById('authorName').value = item.name;
-  renderAuthorProfiles(); refreshHeaderAuthorBadge(); renderAuthorPicker(); scheduleLocalSave();
+  editingAuthorId = id;
+  const btn = document.getElementById('addAuthorBtn');
+  btn.textContent = '編集を適用';
+  document.getElementById('newAuthorDisplayName').focus();
+  document.getElementById('authorPanel').scrollIntoView({ behavior:'smooth', block:'start' });
 }
-
 function downloadJsonFile(filename, data) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1664,6 +1656,8 @@ document.getElementById('importAuthorsFile').addEventListener('change', async e 
   finally { e.target.value=''; }
 });
 
+let editingAuthorId = null;
+
 document.getElementById('addAuthorBtn').addEventListener('click', () => {
   const displayName = document.getElementById('newAuthorDisplayName').value.trim();
   const name = document.getElementById('newAuthorName').value.trim();
@@ -1683,23 +1677,30 @@ document.getElementById('addAuthorBtn').addEventListener('click', () => {
   }
 
   const items = getAuthorProfiles();
-  if (items.some(x => authorDisplayName(x) === displayName)) {
+  if (items.some(x => x.id !== editingAuthorId && authorDisplayName(x) === displayName)) {
     alert('同じ表示名の作成者がすでに登録されています。');
     return;
   }
 
-  const item = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
-    displayName,
-    name,
-    hospital,
-    department,
-    phs,
-    phone,
-    email,
-    iconDataUrl: ''
-  };
-  items.push(item);
+  let item;
+  if (editingAuthorId) {
+    item = items.find(x => x.id === editingAuthorId);
+    if (!item) return;
+    Object.assign(item, { displayName, name, hospital, department, phs, phone, email });
+  } else {
+    item = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+      displayName,
+      name,
+      hospital,
+      department,
+      phs,
+      phone,
+      email,
+      iconDataUrl: ''
+    };
+    items.push(item);
+  }
   saveAuthorProfiles(items);
 
   ['newAuthorDisplayName','newAuthorName','newAuthorHospital','newAuthorDepartment','newAuthorPhs','newAuthorPhone','newAuthorEmail']
@@ -1707,9 +1708,14 @@ document.getElementById('addAuthorBtn').addEventListener('click', () => {
 
   if (!getCurrentAuthorId()) {
     localStorage.setItem(CURRENT_AUTHOR_KEY, item.id);
+  }
+  if (getCurrentAuthorId() === item.id) {
     document.getElementById('authorName').value = item.name;
+    refreshHeaderAuthorBadge();
     scheduleLocalSave();
   }
+  editingAuthorId = null;
+  document.getElementById('addAuthorBtn').textContent = '作成者を追加';
   renderAuthorProfiles();
   renderAuthorPicker();
 });
