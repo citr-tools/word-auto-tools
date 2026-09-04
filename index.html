@@ -63,6 +63,23 @@
   text-align:center;
   line-height:1.5;
 }
+
+.photo-preview{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:6px;
+  margin-top:10px;
+}
+.photo-preview img{
+  width:100%;
+  aspect-ratio:1/1;
+  object-fit:cover;
+  border-radius:6px;
+  border:1px solid #ddd;
+}
+@media (max-width:600px){
+  .photo-preview{grid-template-columns:repeat(3,1fr);}
+}
 </style>
 </head>
 <body>
@@ -104,17 +121,12 @@
         </div>
 
         <div class="field">
-          <label>投稿予定写真</label>
-          <div class="photos">
-            <div class="photo-box"><span>写真1</span><input type="file" id="photo1" accept="image/*"></div>
-            <div class="photo-box"><span>写真2</span><input type="file" id="photo2" accept="image/*"></div>
-            <div class="photo-box"><span>写真3</span><input type="file" id="photo3" accept="image/*"></div>
-            <div class="photo-box"><span>写真4</span><input type="file" id="photo4" accept="image/*"></div>
-          </div>
-        </div>
-
-        <div class="field">
-          <label class="required">写真掲載確認</label>
+          <label>投稿予定写真（最大10枚）
+          <input type="file" id="photos" accept="image/*" multiple>
+        </label>
+        <div id="photoCount" style="margin-top:8px;font-size:13px;color:#6b7280;">選択した写真：0枚 / 10枚</div>
+        <div style="margin-top:3px;font-size:12px;color:#9ca3af;">10枚選択時は 3枚・3枚・4枚で配置されます。</div>
+        <div id="photoPreview" class="photo-preview"></div>
           <label class="consent">
             <input type="checkbox" id="photoConsent" required>
             <span>投稿する写真について、Instagramへの掲載許可を事前に確認済みです。</span>
@@ -168,6 +180,38 @@ document.getElementById('addDateBtn').addEventListener('click', () => {
   wrap.appendChild(row);
 });
 
+
+const photoInput = document.getElementById('photos');
+let selectedPhotos = [];
+
+photoInput.addEventListener('change', () => {
+  const incoming = Array.from(photoInput.files || []);
+  if (incoming.length > 10) {
+    alert('写真は10枚まで選択できます。');
+    photoInput.value = '';
+    selectedPhotos = [];
+  } else {
+    selectedPhotos = incoming;
+  }
+  renderPhotoSelection();
+});
+
+function renderPhotoSelection() {
+  document.getElementById('photoCount').textContent =
+    `選択した写真：${selectedPhotos.length}枚 / 10枚`;
+
+  const preview = document.getElementById('photoPreview');
+  preview.innerHTML = '';
+  selectedPhotos.forEach(file => {
+    const img = document.createElement('img');
+    const url = URL.createObjectURL(file);
+    img.onload = () => URL.revokeObjectURL(url);
+    img.src = url;
+    img.alt = file.name;
+    preview.appendChild(img);
+  });
+}
+
 document.getElementById('wordBtn').addEventListener('click', generateWord);
 document.getElementById('pdfBtn').addEventListener('click', generatePdf);
 
@@ -201,7 +245,7 @@ async function generateWord() {
     const PAGE_CONTENT_W = 9300;
     const INFO_LABEL_W = 2200;
     const INFO_VALUE_W = PAGE_CONTENT_W - INFO_LABEL_W;
-    const PHOTO_CELL_W = Math.floor(PAGE_CONTENT_W / 2);
+    const PHOTO_CELL_W = Math.floor(PAGE_CONTENT_W / 2); // その他の表用
 
     const imageFiles = [];
     for (let i = 1; i <= 4; i++) {
@@ -231,12 +275,7 @@ async function generateWord() {
         children = [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun('写真なし')] })];
       }
 
-      imageCells.push(new TableCell({
-        width:{size:PHOTO_CELL_W,type:WidthType.DXA},
-        verticalAlign: VerticalAlign.CENTER,
-        children,
-        margins: { top: 100, bottom: 100, left: 100, right: 100 }
-      }));
+      imageCells.push({ children });
     }
 
     const borders = {
@@ -307,12 +346,46 @@ async function generateWord() {
       new Table({
         width:{size:PAGE_CONTENT_W,type:WidthType.DXA},
         layout:TableLayoutType.FIXED,
-        columnWidths:[PHOTO_CELL_W, PHOTO_CELL_W],
         borders,
-        rows:[
-          new TableRow({children:[imageCells[0],imageCells[1]]}),
-          new TableRow({children:[imageCells[2],imageCells[3]]})
-        ]
+        rows:(() => {
+          const n = imageCells.length;
+          if (!n) {
+            const half = Math.floor(PAGE_CONTENT_W/2);
+            return [new TableRow({children:[
+              new TableCell({width:{size:half,type:WidthType.DXA},children:[new Paragraph('写真なし')]}),
+              new TableCell({width:{size:PAGE_CONTENT_W-half,type:WidthType.DXA},children:[new Paragraph('')]})
+            ]})];
+          }
+
+          // Instagram 10枚時は 3・3・4。
+          // 7枚は3・4、8枚は4・4、9枚は3・3・3。
+          let plan;
+          if (n <= 3) plan = [n];
+          else if (n <= 6) plan = [3, n-3];
+          else if (n === 7) plan = [3,4];
+          else if (n === 8) plan = [4,4];
+          else if (n === 9) plan = [3,3,3];
+          else plan = [3,3,4];
+
+          const rows = [];
+          let pos = 0;
+          for (const count of plan) {
+            const baseW = Math.floor(PAGE_CONTENT_W / count);
+            const cells = [];
+            for (let c=0; c<count; c++) {
+              const w = (c === count-1) ? PAGE_CONTENT_W - baseW*(count-1) : baseW;
+              const item = imageCells[pos++];
+              cells.push(new TableCell({
+                width:{size:w,type:WidthType.DXA},
+                verticalAlign:VerticalAlign.CENTER,
+                children:item.children,
+                margins:{top:80,bottom:80,left:80,right:80}
+              }));
+            }
+            rows.push(new TableRow({children:cells}));
+          }
+          return rows;
+        })()
       }),
 
       new Paragraph(''),
@@ -556,11 +629,7 @@ async function generatePdf() {
     }
 
     // 写真読み込み
-    const photoFiles = [];
-    for (let i=1;i<=4;i++) {
-      const f = document.getElementById('photo'+i).files[0];
-      if (f) photoFiles.push(f);
-    }
+    const photoFiles = selectedPhotos.slice(0, 10);
 
     const loadedImages = [];
     for (const file of photoFiles) {
@@ -579,28 +648,43 @@ async function generatePdf() {
     }
 
     if (loadedImages.length) {
-      const gap = 18;
-      const cellW = (CONTENT_W - gap) / 2;
-      const cellH = 285;
-      const rows = Math.ceil(loadedImages.length / 2);
-      const needed = 60 + rows * cellH + Math.max(0, rows - 1) * gap;
+      const n = loadedImages.length;
 
-      // 写真セクションが中途半端に切れそうなら新しいページから開始
-      if (p.y + needed > PAGE_H - M - 250) newPage();
+      // 10枚 = 3・3・4。少ない枚数も自然に均等配置。
+      let plan;
+      if (n <= 3) plan = [n];
+      else if (n <= 6) plan = [3, n-3];
+      else if (n === 7) plan = [3,4];
+      else if (n === 8) plan = [4,4];
+      else if (n === 9) plan = [3,3,3];
+      else plan = [3,3,4];
+
+      const rowGap = 18;
+      const cellH = 235;
+      const needed = 60 + plan.length * cellH + Math.max(0, plan.length-1) * rowGap;
+
+      // 写真全体が入らなければ写真セクションから新しいページへ。
+      if (p.y + needed > PAGE_H - M - 240) newPage();
 
       drawSection('【投稿予定写真】');
 
-      for (let r=0; r<rows; r++) {
-        ensure(cellH + gap);
+      let imageIndex = 0;
+      for (const count of plan) {
+        ensure(cellH + rowGap);
+
+        const colGap = 14;
+        const cellW = (CONTENT_W - colGap * (count - 1)) / count;
         const rowY = p.y;
 
-        for (let c=0; c<2; c++) {
-          const idx = r * 2 + c;
-          if (idx >= loadedImages.length) continue;
+        for (let c=0; c<count; c++) {
+          const img = loadedImages[imageIndex++];
+          const x = M + c * (cellW + colGap);
 
-          const img = loadedImages[idx];
-          const x = M + c * (cellW + gap);
-          const scale = Math.min((cellW - 10) / img.naturalWidth, (cellH - 10) / img.naturalHeight);
+          // 枠内にアスペクト比を保って収める。
+          const scale = Math.min(
+            (cellW - 8) / img.naturalWidth,
+            (cellH - 8) / img.naturalHeight
+          );
           const w = img.naturalWidth * scale;
           const h = img.naturalHeight * scale;
 
@@ -613,7 +697,7 @@ async function generatePdf() {
           );
         }
 
-        p.y += cellH + gap;
+        p.y += cellH + rowGap;
       }
     }
 
@@ -744,8 +828,8 @@ async function prepareImage(file) {
   const dims = await getImageDimensions(file);
 
   // 2列写真表に収まるよう少し小さめに固定
-  const maxW = 250;
-  const maxH = 175;
+  const maxW = 180;
+  const maxH = 145;
   const scale = Math.min(maxW / dims.width, maxH / dims.height, 1);
 
   let type = 'jpg';
