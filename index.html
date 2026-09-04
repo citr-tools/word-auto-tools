@@ -499,10 +499,22 @@
       margin-top:18px;
     }
     .application-actions .submit{margin:0}
-    .application-actions .submit.secondary{
+    .application-actions button{
+      width:100%;
+      min-height:52px;
+      border-radius:16px;
+      padding:14px 16px;
+      font:inherit;
+      font-size:14px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .application-actions .submit.secondary,
+    .application-actions .secondary{
       background:#fff;
       color:var(--primary-dark);
       border:1px solid #bfe5e1;
+      box-shadow:none;
     }
     @media(max-width:680px){
       .application-grid,.application-grid.two{grid-template-columns:1fr}
@@ -800,6 +812,8 @@
 
         <button class="submit" id="wordBtn" type="button">Wordをダウンロード</button>
         <button class="submit" id="pdfBtn" type="button" style="margin-top:10px;background:#4b6366;box-shadow:none;">PDFをダウンロード</button>
+        <button class="submit" id="printBtn" type="button" style="margin-top:10px;background:#fff;color:var(--primary-dark);border:1px solid #bfe5e1;box-shadow:none;">投稿確認文書を印刷</button>
+        <button class="submit" id="emailBtn" type="button" style="margin-top:10px;background:#fff;color:var(--primary-dark);border:1px solid #bfe5e1;box-shadow:none;">メールで提出</button>
         <div id="status" class="status"></div>
         <div class="local-note">
           <span class="privacy-pill">🔒 入力内容・写真は外部へアップロードされません</span>
@@ -998,6 +1012,7 @@
           <div class="application-actions">
             <button type="button" class="submit" id="applicationWordBtn">申請書 Wordをダウンロード</button>
             <button type="button" class="secondary" id="applicationPdfBtn">申請書 PDFをダウンロード</button>
+            <button type="button" class="secondary" id="applicationPrintBtn">申請書を印刷</button>
           </div>
           <div id="applicationStatus" class="status"></div>
         </div>
@@ -2448,19 +2463,47 @@ async function generateApplicationWord() {
 }
 
 
+function printPdfBlob(blob, printWindow) {
+  const url = URL.createObjectURL(blob);
+
+  if (!printWindow) {
+    const opened = window.open(url, '_blank');
+    if (!opened) {
+      URL.revokeObjectURL(url);
+      throw new Error('印刷画面を開けませんでした。Safariのポップアップ設定を確認してください。');
+    }
+    printWindow = opened;
+  } else {
+    printWindow.location.href = url;
+  }
+
+  // PDF表示後にブラウザの印刷画面を開く。
+  // iOS SafariではPDFビューアが開いた後に印刷画面へ進みます。
+  setTimeout(() => {
+    try {
+      printWindow.focus();
+      printWindow.print();
+    } catch (_) {}
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }, 1200);
+}
+
+
 function applicationPdfDateParts(value) {
   if (!value) return { y:'', m:'', d:'' };
   const [y,m,d] = value.split('-');
   return { y:String(Number(y)), m:String(Number(m)), d:String(Number(d)) };
 }
 
-async function generateApplicationPdf() {
+async function generateApplicationPdf(mode = 'download') {
   const status = document.getElementById('applicationStatus');
-  const btn = document.getElementById('applicationPdfBtn');
+  const isPrint = mode === 'print';
+  const btn = document.getElementById(isPrint ? 'applicationPrintBtn' : 'applicationPdfBtn');
+  const printWindow = isPrint ? window.open('', '_blank') : null;
   const s = getApplicationFormState();
 
   btn.disabled = true;
-  btn.textContent = 'PDF作成中…';
+  btn.textContent = isPrint ? '印刷準備中…' : 'PDF作成中…';
   status.className = 'status loading';
   status.textContent = '元PDFに入力内容を記入しています…';
 
@@ -2565,24 +2608,33 @@ async function generateApplicationPdf() {
     page.drawImage(overlay, {x:0, y:0, width:pdfW, height:pdfH});
 
     const bytes = await outPdf.save();
-    downloadBlob(
-      new Blob([bytes], {type:'application/pdf'}),
-      `Instagram投稿申請書_${appSafeFileDate(s.requestDate)}.pdf`
-    );
-    status.className = 'status success';
-    status.textContent = '元PDFの書式そのままで申請書PDFをダウンロードしました。';
+    const pdfBlob = new Blob([bytes], {type:'application/pdf'});
+
+    if (isPrint) {
+      printPdfBlob(pdfBlob, printWindow);
+      status.className = 'status success';
+      status.textContent = '申請書の印刷画面を開きます。';
+    } else {
+      downloadBlob(
+        pdfBlob,
+        `Instagram投稿申請書_${appSafeFileDate(s.requestDate)}.pdf`
+      );
+      status.className = 'status success';
+      status.textContent = '元PDFの書式そのままで申請書PDFをダウンロードしました。';
+    }
   } catch (err) {
     console.error(err);
     status.className = 'status error';
     status.textContent = '申請書PDFの作成に失敗しました。\n' + (err?.message || err);
   } finally {
     btn.disabled = false;
-    btn.textContent = '申請書 PDFをダウンロード';
+    btn.textContent = isPrint ? '申請書を印刷' : '申請書 PDFをダウンロード';
   }
 }
 
 document.getElementById('applicationWordBtn').addEventListener('click', generateApplicationWord);
 document.getElementById('applicationPdfBtn').addEventListener('click', generateApplicationPdf);
+document.getElementById('applicationPrintBtn').addEventListener('click', () => generateApplicationPdf('print'));
 
 
 restoreLocalDraft().then(() => {
@@ -2798,6 +2850,9 @@ document.getElementById('saveDocumentBtn').addEventListener('click', saveCurrent
 
 document.getElementById('wordBtn').addEventListener('click', generateWord);
 document.getElementById('pdfBtn').addEventListener('click', generatePdf);
+document.getElementById('printBtn').addEventListener('click', () => generatePdf('print'));
+
+document.getElementById('emailBtn').addEventListener('click', () => generatePdf('share'));
 
 async function generateWord() {
   const btn = document.getElementById('wordBtn');
@@ -3076,8 +3131,11 @@ async function generateWord() {
 }
 
 
-async function generatePdf() {
-  const btn = document.getElementById('pdfBtn');
+async function generatePdf(mode = 'download') {
+  const isPrint = mode === 'print';
+  const isShare = mode === 'share';
+  const btn = document.getElementById(isPrint ? 'printBtn' : (isShare ? 'emailBtn' : 'pdfBtn'));
+  const printWindow = isPrint ? window.open('', '_blank') : null;
   const status = document.getElementById('status');
 
   const eventName = document.getElementById('eventName').value.trim();
@@ -3095,9 +3153,9 @@ async function generatePdf() {
   }
 
   btn.disabled = true;
-  btn.textContent = '';
+  btn.textContent = isPrint ? '印刷準備中…' : (isShare ? '提出準備中…' : '');
   status.className = 'status loading';
-  status.textContent = 'PDFを作成しています…';
+  status.textContent = isPrint ? '印刷用文書を作成しています…' : (isShare ? 'PDFとメール本文を準備しています…' : 'PDFを作成しています…');
 
   try {
     const { PDFDocument } = PDFLib;
@@ -3371,20 +3429,68 @@ async function generatePdf() {
     }
 
     const pdfBytes = await pdf.save();
-    downloadBlob(
-      new Blob([pdfBytes], {type:'application/pdf'}),
-      sanitizeFileName(eventName) + '_Instagram投稿確認書.pdf'
-    );
+    const pdfBlob = new Blob([pdfBytes], {type:'application/pdf'});
 
-    status.className = 'status success';
-    status.textContent = 'PDF確認書をダウンロードしました。';
+    if (isPrint) {
+      printPdfBlob(pdfBlob, printWindow);
+      status.className = 'status success';
+      status.textContent = '投稿確認文書の印刷画面を開きます。';
+    } else if (isShare) {
+      const authorLastName = authorName ? authorName.split(/[\\s　]+/)[0] : '';
+      const dates = [...selectedEventDates].sort().map(formatDateShort).join('、');
+      const subject = `【青年部】Instagram投稿確認依頼 ${eventName}`;
+      const body = [
+        'お疲れ様です。',
+        `青年部 情宣部長の${authorLastName || '（作成者名）'}です。`,
+        '',
+        'Instagramへの投稿を予定しておりますので、投稿内容のご確認をお願いいたします。',
+        '',
+        '【イベント名】',
+        eventName,
+        '',
+        '【開催日】',
+        dates || '（未入力）',
+        '',
+        '投稿内容・掲載予定写真につきましては、添付の投稿確認文書をご確認ください。',
+        '写真の掲載許可は確認済みです。',
+        '',
+        '修正等ございましたら、ご連絡をお願いいたします。',
+        'よろしくお願いいたします。'
+      ].join('\\r\\n');
+
+      const file = new File(
+        [pdfBlob],
+        sanitizeFileName(eventName) + '_Instagram投稿確認書.pdf',
+        { type: 'application/pdf' }
+      );
+
+      if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
+        throw new Error('この端末ではPDF共有に対応していません。');
+      }
+
+      await navigator.share({
+        title: subject,
+        text: body,
+        files: [file]
+      });
+
+      status.className = 'status success';
+      status.textContent = '共有シートを開きました。「許可申請メール作成」または「メール」を選択してください。';
+    } else {
+      downloadBlob(
+        pdfBlob,
+        sanitizeFileName(eventName) + '_Instagram投稿確認書.pdf'
+      );
+      status.className = 'status success';
+      status.textContent = 'PDF確認書をダウンロードしました。';
+    }
   } catch (err) {
     console.error(err);
     status.className = 'status error';
     status.textContent = 'PDF作成に失敗しました。\n' + (err?.message || err);
   } finally {
     btn.disabled = false;
-    btn.textContent = 'PDFをダウンロード';
+    btn.textContent = isPrint ? '投稿確認文書を印刷' : (isShare ? 'メールで提出' : 'PDFをダウンロード');
   }
 }
 
