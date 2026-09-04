@@ -892,11 +892,38 @@
         </div>
 
         <div class="field" style="margin-top:16px;">
-          <label for="newAuthorName">作成者を追加</label>
-          <div class="author-add-row">
-            <input id="newAuthorName" type="text" placeholder="例：佐久太郎">
-            <button type="button" class="save-action author-add-btn" id="addAuthorBtn">追加</button>
+          <label>作成者を追加</label>
+          <div class="application-grid">
+            <div class="field">
+              <label for="newAuthorDisplayName">表示名（苗字）</label>
+              <input id="newAuthorDisplayName" type="text" placeholder="例：小林">
+            </div>
+            <div class="field">
+              <label for="newAuthorName">氏名（フルネーム）</label>
+              <input id="newAuthorName" type="text" placeholder="例：小林 凜太朗">
+            </div>
+            <div class="field">
+              <label for="newAuthorHospital">病院名</label>
+              <input id="newAuthorHospital" type="text" placeholder="例：佐久総合病院">
+            </div>
+            <div class="field">
+              <label for="newAuthorDepartment">所属</label>
+              <input id="newAuthorDepartment" type="text" placeholder="例：臨床工学科">
+            </div>
+            <div class="field">
+              <label for="newAuthorPhs">PHS番号</label>
+              <input id="newAuthorPhs" type="text" inputmode="tel" placeholder="例：1234">
+            </div>
+            <div class="field">
+              <label for="newAuthorPhone">電話番号</label>
+              <input id="newAuthorPhone" type="tel" placeholder="例：0267-00-0000">
+            </div>
+            <div class="field">
+              <label for="newAuthorEmail">メールアドレス</label>
+              <input id="newAuthorEmail" type="email" placeholder="例：name@example.com">
+            </div>
           </div>
+          <button type="button" class="submit" id="addAuthorBtn" style="margin-top:6px;">作成者を追加</button>
         </div>
 
         <div class="field">
@@ -1301,6 +1328,11 @@ function authorInitial(name) {
   return text ? text.slice(0, 1) : '?';
 }
 
+function authorDisplayName(author) {
+  if (!author) return '';
+  return String(author.displayName || author.name || '').trim();
+}
+
 let pendingAuthorIconId = '';
 
 async function resizeAuthorIcon(file) {
@@ -1346,7 +1378,7 @@ function setAvatarContent(element, author) {
     img.alt = author.name || '作成者';
     element.appendChild(img);
   } else {
-    element.textContent = author ? authorInitial(author.name) : '?';
+    element.textContent = author ? authorInitial(authorDisplayName(author)) : '?';
   }
 }
 
@@ -1363,7 +1395,7 @@ function refreshHeaderAuthorBadge() {
     img.alt = current.name || '作成者';
     badge.appendChild(img);
   } else {
-    badge.textContent = current ? authorInitial(current.name) : '情宣';
+    badge.textContent = current ? authorInitial(authorDisplayName(current)) : '情宣';
   }
 }
 
@@ -1415,7 +1447,7 @@ function renderAuthorPicker() {
   if (!avatar || !name || !hidden || !menu) return;
 
   setAvatarContent(avatar, current);
-  name.textContent = current ? current.name : '作成者を選択';
+  name.textContent = current ? authorDisplayName(current) : '作成者を選択';
   hidden.value = current ? current.name : '';
 
   menu.innerHTML = '';
@@ -1440,7 +1472,7 @@ function renderAuthorPicker() {
 
     const nm = document.createElement('div');
     nm.className = 'author-picker-option-name';
-    nm.textContent = item.name;
+    nm.textContent = authorDisplayName(item);
 
     const check = document.createElement('div');
     check.className = 'author-picker-option-check';
@@ -1519,7 +1551,7 @@ function renderAuthorProfiles() {
   list.innerHTML = '';
   empty.style.display = items.length ? 'none' : 'block';
 
-  currentName.textContent = current ? current.name : '未選択';
+  currentName.textContent = current ? authorDisplayName(current) : '未選択';
   setAvatarContent(currentAvatar, current);
 
   for (const item of items) {
@@ -1533,10 +1565,14 @@ function renderAuthorProfiles() {
     const main = document.createElement('div');
     const name = document.createElement('div');
     name.className = 'author-item-name';
-    name.textContent = item.name;
+    name.textContent = authorDisplayName(item);
     const sub = document.createElement('div');
     sub.className = 'author-item-sub';
-    sub.textContent = item.id === currentId ? '現在の作成者' : 'タップして切り替え';
+    sub.textContent = [
+      item.name || '',
+      item.hospital || '',
+      item.department || ''
+    ].filter(Boolean).join(' / ') || (item.id === currentId ? '現在の作成者' : 'タップして切り替え');
     main.append(name, sub);
 
     const actions = document.createElement('div');
@@ -1568,27 +1604,45 @@ function renderAuthorProfiles() {
 }
 
 document.getElementById('addAuthorBtn').addEventListener('click', () => {
-  const input = document.getElementById('newAuthorName');
-  const name = input.value.trim();
+  const displayName = document.getElementById('newAuthorDisplayName').value.trim();
+  const name = document.getElementById('newAuthorName').value.trim();
+  const hospital = document.getElementById('newAuthorHospital').value.trim();
+  const department = document.getElementById('newAuthorDepartment').value.trim();
+  const phs = document.getElementById('newAuthorPhs').value.trim();
+  const phone = document.getElementById('newAuthorPhone').value.trim();
+  const email = document.getElementById('newAuthorEmail').value.trim();
+
+  if (!displayName) {
+    alert('表示名（苗字）を入力してください。');
+    return;
+  }
   if (!name) {
-    alert('作成者名を入力してください。');
+    alert('氏名（フルネーム）を入力してください。');
     return;
   }
 
   const items = getAuthorProfiles();
-  if (items.some(x => x.name === name)) {
-    alert('同じ名前の作成者がすでに登録されています。');
+  if (items.some(x => authorDisplayName(x) === displayName)) {
+    alert('同じ表示名の作成者がすでに登録されています。');
     return;
   }
 
   const item = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+    displayName,
     name,
+    hospital,
+    department,
+    phs,
+    phone,
+    email,
     iconDataUrl: ''
   };
   items.push(item);
   saveAuthorProfiles(items);
-  input.value = '';
+
+  ['newAuthorDisplayName','newAuthorName','newAuthorHospital','newAuthorDepartment','newAuthorPhs','newAuthorPhone','newAuthorEmail']
+    .forEach(id => document.getElementById(id).value = '');
 
   if (!getCurrentAuthorId()) {
     localStorage.setItem(CURRENT_AUTHOR_KEY, item.id);
@@ -1599,7 +1653,7 @@ document.getElementById('addAuthorBtn').addEventListener('click', () => {
   renderAuthorPicker();
 });
 
-document.getElementById('newAuthorName').addEventListener('keydown', (e) => {
+document.getElementById('newAuthorEmail').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     document.getElementById('addAuthorBtn').click();
@@ -3436,7 +3490,12 @@ async function generatePdf(mode = 'download') {
       status.className = 'status success';
       status.textContent = '投稿確認文書の印刷画面を開きます。';
     } else if (isShare) {
-      const authorLastName = authorName ? authorName.split(/[\\s　]+/)[0] : '';
+      const authorProfiles = getAuthorProfiles();
+      const currentAuthor = authorProfiles.find(x => x.id === getCurrentAuthorId());
+      const authorLastName = currentAuthor ? authorDisplayName(currentAuthor) : (() => {
+        if (!authorName) return '';
+        return authorName.split(/[\\s　]+/)[0];
+      })();
       const dates = [...selectedEventDates].sort().map(formatDateShort).join('、');
       const subject = `【青年部】Instagram投稿確認依頼 ${eventName}`;
       const body = [
@@ -3455,8 +3514,19 @@ async function generatePdf(mode = 'download') {
         '写真の掲載許可は確認済みです。',
         '',
         '修正等ございましたら、ご連絡をお願いいたします。',
-        'よろしくお願いいたします。'
-      ].join('\\r\\n');
+        'よろしくお願いいたします。',
+        '',
+        '─────────────',
+        ...(currentAuthor ? [
+          currentAuthor.hospital || '',
+          currentAuthor.department || '',
+          currentAuthor.name || '',
+          currentAuthor.phs ? `PHS：${currentAuthor.phs}` : '',
+          currentAuthor.phone ? `TEL：${currentAuthor.phone}` : '',
+          currentAuthor.email ? `Mail：${currentAuthor.email}` : ''
+        ].filter(Boolean) : [authorName || '']),
+        '─────────────'
+      ].join('\n');
 
       const file = new File(
         [pdfBlob],
@@ -3468,9 +3538,11 @@ async function generatePdf(mode = 'download') {
         throw new Error('この端末ではPDF共有に対応していません。');
       }
 
+      const shareText = `SUBJECT:${subject}\n\n${body}`;
+
       await navigator.share({
         title: subject,
-        text: body,
+        text: shareText,
         files: [file]
       });
 
