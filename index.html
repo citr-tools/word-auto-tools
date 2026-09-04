@@ -254,56 +254,38 @@ async function generateWord() {
     }
 
     const imageCells = [];
-    for (let i = 0; i < 4; i++) {
-      let children;
+    const wordPhotoCount = selectedPhotos.length;
+    let wordPlan;
+    if (wordPhotoCount <= 3) wordPlan = [wordPhotoCount];
+    else if (wordPhotoCount <= 6) wordPlan = [3, wordPhotoCount-3];
+    else if (wordPhotoCount === 7) wordPlan = [3,4];
+    else if (wordPhotoCount === 8) wordPlan = [4,4];
+    else if (wordPhotoCount === 9) wordPlan = [3,3,3];
+    else wordPlan = [3,3,4];
 
-      if (i < imageFiles.length) {
-        const info = await prepareImage(imageFiles[i]);
-        children = [
+    let wordPhotoIndex = 0;
+    for (const count of wordPlan) {
+      const maxW = count === 4 ? 125 : 165;
+      const maxH = count === 4 ? 95 : 125;
+
+      for (let c=0; c<count; c++) {
+        const f = selectedPhotos[wordPhotoIndex++];
+        if (!f) continue;
+
+        const image = await prepareImage(f, maxW, maxH);
+        const children = [
           new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new ImageRun({
-                data: info.buffer,
-                transformation: { width: info.width, height: info.height },
-                type: info.type
-              })
-            ]
+            alignment:AlignmentType.CENTER,
+            children:[new ImageRun({
+              data:image.bytes,
+              transformation:{width:image.width,height:image.height}
+            })]
           })
         ];
-      } else {
-        children = [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun('写真なし')] })];
+
+        imageCells.push({ children, rowCount: count });
       }
-
-      imageCells.push({ children });
     }
-
-    const borders = {
-      top:{style:BorderStyle.SINGLE,size:1,color:'888888'},
-      bottom:{style:BorderStyle.SINGLE,size:1,color:'888888'},
-      left:{style:BorderStyle.SINGLE,size:1,color:'888888'},
-      right:{style:BorderStyle.SINGLE,size:1,color:'888888'},
-      insideHorizontal:{style:BorderStyle.SINGLE,size:1,color:'888888'},
-      insideVertical:{style:BorderStyle.SINGLE,size:1,color:'888888'}
-    };
-
-    const infoRows = [
-      ['イベント名', eventName],
-      ['開催日', eventDateText],
-      ['作成者', authorName]
-    ].map(([a,b]) => new TableRow({
-      children:[
-        new TableCell({
-          width:{size:INFO_LABEL_W,type:WidthType.DXA},
-          shading:{fill:'EEEEEE',type:ShadingType.CLEAR},
-          children:[new Paragraph({children:[new TextRun({text:a,bold:true})]})]
-        }),
-        new TableCell({
-          width:{size:INFO_VALUE_W,type:WidthType.DXA},
-          children:[new Paragraph(b || '')]
-        })
-      ]
-    }));
 
     const children = [
       new Paragraph({
@@ -348,8 +330,7 @@ async function generateWord() {
         layout:TableLayoutType.FIXED,
         borders,
         rows:(() => {
-          const n = imageCells.length;
-          if (!n) {
+          if (!imageCells.length) {
             const half = Math.floor(PAGE_CONTENT_W/2);
             return [new TableRow({children:[
               new TableCell({width:{size:half,type:WidthType.DXA},children:[new Paragraph('写真なし')]}),
@@ -357,19 +338,9 @@ async function generateWord() {
             ]})];
           }
 
-          // Instagram 10枚時は 3・3・4。
-          // 7枚は3・4、8枚は4・4、9枚は3・3・3。
-          let plan;
-          if (n <= 3) plan = [n];
-          else if (n <= 6) plan = [3, n-3];
-          else if (n === 7) plan = [3,4];
-          else if (n === 8) plan = [4,4];
-          else if (n === 9) plan = [3,3,3];
-          else plan = [3,3,4];
-
           const rows = [];
           let pos = 0;
-          for (const count of plan) {
+          for (const count of wordPlan) {
             const baseW = Math.floor(PAGE_CONTENT_W / count);
             const cells = [];
             for (let c=0; c<count; c++) {
@@ -378,8 +349,8 @@ async function generateWord() {
               cells.push(new TableCell({
                 width:{size:w,type:WidthType.DXA},
                 verticalAlign:VerticalAlign.CENTER,
-                children:item.children,
-                margins:{top:80,bottom:80,left:80,right:80}
+                children:item ? item.children : [new Paragraph('')],
+                margins:{top:60,bottom:60,left:60,right:60}
               }));
             }
             rows.push(new TableRow({children:cells}));
@@ -387,7 +358,6 @@ async function generateWord() {
           return rows;
         })()
       }),
-
       new Paragraph(''),
       sectionTitle('【写真掲載確認】'),
       new Paragraph('☑ 投稿する写真について、Instagramへの掲載許可を事前に確認済み')
@@ -650,7 +620,7 @@ async function generatePdf() {
     if (loadedImages.length) {
       const n = loadedImages.length;
 
-      // 10枚 = 3・3・4。少ない枚数も自然に均等配置。
+      // 10枚 = 3・3・4。少ない枚数も自然に配置。
       let plan;
       if (n <= 3) plan = [n];
       else if (n <= 6) plan = [3, n-3];
@@ -660,19 +630,24 @@ async function generatePdf() {
       else plan = [3,3,4];
 
       const rowGap = 18;
-      const cellH = 235;
-      const needed = 60 + plan.length * cellH + Math.max(0, plan.length-1) * rowGap;
+      const colGap = 14;
 
-      // 写真全体が入らなければ写真セクションから新しいページへ。
-      if (p.y + needed > PAGE_H - M - 240) newPage();
+      // 行ごとに、その列数に合った高さを使う。
+      // 4列行は幅が狭いため、高さも小さくして見切れを防ぐ。
+      const rowHeights = plan.map(count => count === 4 ? 180 : 220);
+      const needed = 60 + rowHeights.reduce((a,b)=>a+b,0) + rowGap * Math.max(0, plan.length-1);
+
+      // 写真と確認欄を同じページに押し込みすぎない。
+      if (p.y + needed > PAGE_H - M - 260) newPage();
 
       drawSection('【投稿予定写真】');
 
       let imageIndex = 0;
-      for (const count of plan) {
+      for (let r=0; r<plan.length; r++) {
+        const count = plan[r];
+        const cellH = rowHeights[r];
         ensure(cellH + rowGap);
 
-        const colGap = 14;
         const cellW = (CONTENT_W - colGap * (count - 1)) / count;
         const rowY = p.y;
 
@@ -680,13 +655,21 @@ async function generatePdf() {
           const img = loadedImages[imageIndex++];
           const x = M + c * (cellW + colGap);
 
-          // 枠内にアスペクト比を保って収める。
+          // 画像全体が必ずセル内に収まるcontain方式。
+          const maxW = cellW - 10;
+          const maxH = cellH - 10;
           const scale = Math.min(
-            (cellW - 8) / img.naturalWidth,
-            (cellH - 8) / img.naturalHeight
+            maxW / img.naturalWidth,
+            maxH / img.naturalHeight
           );
-          const w = img.naturalWidth * scale;
-          const h = img.naturalHeight * scale;
+          const w = Math.max(1, img.naturalWidth * scale);
+          const h = Math.max(1, img.naturalHeight * scale);
+
+          p.ctx.save();
+          // 念のためセル外へ描画されないようクリップ
+          p.ctx.beginPath();
+          p.ctx.rect(x, rowY, cellW, cellH);
+          p.ctx.clip();
 
           p.ctx.drawImage(
             img,
@@ -695,9 +678,11 @@ async function generatePdf() {
             w,
             h
           );
+          p.ctx.restore();
         }
 
-        p.y += cellH + rowGap;
+        p.y += cellH;
+        if (r < plan.length - 1) p.y += rowGap;
       }
     }
 
@@ -823,13 +808,13 @@ function downloadBlob(blob, fileName) {
   setTimeout(() => URL.revokeObjectURL(url), 3000);
 }
 
-async function prepareImage(file) {
+async function prepareImage(file, maxWOverride=null, maxHOverride=null) {
   const arrayBuffer = await file.arrayBuffer();
   const dims = await getImageDimensions(file);
 
   // 2列写真表に収まるよう少し小さめに固定
-  const maxW = 180;
-  const maxH = 145;
+  const maxW = maxWOverride || 180;
+  const maxH = maxHOverride || 145;
   const scale = Math.min(maxW / dims.width, maxH / dims.height, 1);
 
   let type = 'jpg';
