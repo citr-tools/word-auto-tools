@@ -427,177 +427,255 @@ async function generatePdf() {
   status.textContent = 'PDFを作成しています…';
 
   try {
-    const { PDFDocument, rgb } = PDFLib;
-    const pdf = await PDFDocument.create();
-    pdf.registerFontkit(fontkit);
+    const { PDFDocument } = PDFLib;
 
-    // TrueType版 Noto Sans JP を埋め込む。
-    // 以前のWOFF2をpdf-libに渡す方式はiPhoneで日本語が「・・・」になる原因だった。
-    const fontCandidates = [
-      'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/SubsetOTF/JP/NotoSansJP-Regular.otf',
-      'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/SubsetOTF/JP/NotoSansJP-Regular.otf'
-    ];
-    let fontBytes = null;
-    for (const url of fontCandidates) {
-      try {
-        const r = await fetch(url);
-        if (r.ok) { fontBytes = await r.arrayBuffer(); break; }
-      } catch (_) {}
-    }
-    if (!fontBytes) throw new Error('日本語フォントを読み込めませんでした。通信状態を確認してください。');
-    const font = await pdf.embedFont(fontBytes, { subset: true });
+    // Safari/iPhoneで日本語PDFフォントが崩れる問題を避けるため、
+    // 文字・表・写真をブラウザのCanvasで描画し、そのページ画像をPDF化する。
+    // これにより日本語は端末のブラウザフォントで確実に描画される。
+    const PAGE_W = 1240;
+    const PAGE_H = 1754;
+    const M = 72;
+    const CONTENT_W = PAGE_W - M * 2;
 
-    const A4_W = 595.28, A4_H = 841.89;
-    const M = 42;
-    const contentW = A4_W - M * 2;
-    const lineH = 14;
-    let page, y;
+    const makePage = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = PAGE_W;
+      canvas.height = PAGE_H;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+      ctx.fillStyle = '#000000';
+      ctx.strokeStyle = '#999999';
+      ctx.lineWidth = 1.5;
+      ctx.textBaseline = 'top';
+      return { canvas, ctx, y: M };
+    };
 
-    function newPage() {
-      page = pdf.addPage([A4_W, A4_H]);
-      y = A4_H - M;
-    }
-    function ensure(h) {
-      if (y - h < M) newPage();
-    }
-    function drawText(str, x, yy, size=9) {
-      page.drawText(String(str ?? ''), {x, y:yy, size, font, color:rgb(0,0,0)});
-    }
-    function wrap(str, maxWidth, size=9) {
+    let p = makePage();
+    const pages = [p];
+
+    const setFont = (size, bold=false) => {
+      p.ctx.font = `${bold ? '700' : '400'} ${size}px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic","Meiryo",sans-serif`;
+      p.ctx.fillStyle = '#000';
+    };
+
+    const newPage = () => {
+      p = makePage();
+      pages.push(p);
+    };
+
+    const ensure = (h) => {
+      if (p.y + h > PAGE_H - M) newPage();
+    };
+
+    const wrapText = (text, maxW, size=24, bold=false) => {
+      setFont(size, bold);
       const lines = [];
-      for (const para of String(str ?? '').split(/\r?\n/)) {
+      for (const para of String(text ?? '').split(/\r?\n/)) {
         if (!para) { lines.push(''); continue; }
         let line = '';
         for (const ch of para) {
-          const next = line + ch;
-          if (line && font.widthOfTextAtSize(next, size) > maxWidth) {
+          const test = line + ch;
+          if (line && p.ctx.measureText(test).width > maxW) {
             lines.push(line);
             line = ch;
           } else {
-            line = next;
+            line = test;
           }
         }
         lines.push(line);
       }
       return lines;
-    }
-    function sectionTitle(label) {
-      ensure(26);
-      y -= 8;
-      drawText(label, M, y, 11);
-      y -= 17;
-    }
-    function infoRow(label, value) {
-      const labelW = 105, h = 25;
+    };
+
+    const drawCentered = (text, size, bold=false) => {
+      setFont(size, bold);
+      const w = p.ctx.measureText(text).width;
+      p.ctx.fillText(text, (PAGE_W - w) / 2, p.y);
+      p.y += size + 14;
+    };
+
+    const drawInfoRow = (label, value) => {
+      const labelW = 250;
+      const h = 58;
       ensure(h);
-      page.drawRectangle({x:M,y:y-h,width:contentW,height:h,borderWidth:.6,borderColor:rgb(.55,.55,.55)});
-      page.drawLine({start:{x:M+labelW,y},end:{x:M+labelW,y:y-h},thickness:.6,color:rgb(.55,.55,.55)});
-      drawText(label, M+6, y-16, 8.5);
-      const vals = wrap(value || '', contentW-labelW-12, 8.5);
-      drawText(vals[0] || '', M+labelW+6, y-16, 8.5);
-      y -= h;
+      p.ctx.strokeRect(M, p.y, CONTENT_W, h);
+      p.ctx.beginPath();
+      p.ctx.moveTo(M + labelW, p.y);
+      p.ctx.lineTo(M + labelW, p.y + h);
+      p.ctx.stroke();
+
+      setFont(22, true);
+      p.ctx.fillText(label, M + 14, p.y + 16);
+
+      setFont(22, false);
+      const lines = wrapText(value || '', CONTENT_W - labelW - 28, 22, false);
+      p.ctx.fillText(lines[0] || '', M + labelW + 14, p.y + 16);
+      p.y += h;
+    };
+
+    const drawSection = (title) => {
+      ensure(52);
+      p.y += 22;
+      setFont(24, true);
+      p.ctx.fillText(title, M, p.y);
+      p.y += 38;
+    };
+
+    drawCentered('Instagram 投稿確認書', 38, true);
+    drawCentered('情宣部', 24, false);
+    p.y += 10;
+
+    drawInfoRow('イベント名', eventName);
+    drawInfoRow('開催日', eventDateText);
+    drawInfoRow('作成者', authorName);
+
+    drawSection('【Instagram 投稿予定文】');
+
+    const postLines = wrapText(postText, CONTENT_W - 28, 22);
+    const postLineH = 34;
+    const postH = Math.max(96, postLines.length * postLineH + 28);
+
+    // 投稿文がページに入り切らない場合は枠を分割せず、行ごとに安全に描画
+    if (p.y + postH <= PAGE_H - M) {
+      p.ctx.strokeRect(M, p.y, CONTENT_W, postH);
+      let ty = p.y + 14;
+      setFont(22, false);
+      for (const line of postLines) {
+        p.ctx.fillText(line, M + 14, ty);
+        ty += postLineH;
+      }
+      p.y += postH;
+    } else {
+      for (const line of postLines) {
+        ensure(postLineH + 6);
+        setFont(22, false);
+        p.ctx.fillText(line, M + 8, p.y);
+        p.y += postLineH;
+      }
     }
 
-    newPage();
-
-    const title = 'Instagram 投稿確認書';
-    drawText(title, (A4_W-font.widthOfTextAtSize(title,17))/2, y, 17);
-    y -= 21;
-    const dept = '情宣部';
-    drawText(dept, (A4_W-font.widthOfTextAtSize(dept,10))/2, y, 10);
-    y -= 25;
-
-    infoRow('イベント名', eventName);
-    infoRow('開催日', eventDateText);
-    infoRow('作成者', authorName);
-
-    sectionTitle('【Instagram 投稿予定文】');
-    const postLines = wrap(postText, contentW-12, 9);
-    for (const line of postLines) {
-      ensure(lineH);
-      drawText(line, M+5, y, 9);
-      y -= lineH;
-    }
-    y -= 7;
-
-    // 写真は2列×2段。残りスペースが少なければ写真セクションから次ページへ。
-    const files = [];
+    // 写真読み込み
+    const photoFiles = [];
     for (let i=1;i<=4;i++) {
       const f = document.getElementById('photo'+i).files[0];
-      if (f) files.push(f);
+      if (f) photoFiles.push(f);
     }
 
-    if (files.length) {
-      const gap = 10;
-      const cellW = (contentW-gap)/2;
-      const cellH = 165;
-      const rows = Math.ceil(files.length/2);
-      const photosH = 25 + rows*cellH + Math.max(0,rows-1)*gap;
-      if (y - photosH < M + 100) newPage();
-
-      sectionTitle('【投稿予定写真】');
-
-      const embedded = [];
-      for (const f of files) {
-        const bytes = await f.arrayBuffer();
-        let img;
-        if (f.type === 'image/png') img = await pdf.embedPng(bytes);
-        else if (f.type === 'image/jpeg' || f.type === 'image/jpg') img = await pdf.embedJpg(bytes);
-        else img = await pdf.embedJpg(await imageFileToJpegDataUrl(f));
-        embedded.push(img);
+    const loadedImages = [];
+    for (const file of photoFiles) {
+      const url = URL.createObjectURL(file);
+      try {
+        const img = await new Promise((resolve, reject) => {
+          const im = new Image();
+          im.onload = () => resolve(im);
+          im.onerror = reject;
+          im.src = url;
+        });
+        loadedImages.push(img);
+      } finally {
+        URL.revokeObjectURL(url);
       }
+    }
+
+    if (loadedImages.length) {
+      const gap = 18;
+      const cellW = (CONTENT_W - gap) / 2;
+      const cellH = 285;
+      const rows = Math.ceil(loadedImages.length / 2);
+      const needed = 60 + rows * cellH + Math.max(0, rows - 1) * gap;
+
+      // 写真セクションが中途半端に切れそうなら新しいページから開始
+      if (p.y + needed > PAGE_H - M - 250) newPage();
+
+      drawSection('【投稿予定写真】');
 
       for (let r=0; r<rows; r++) {
-        ensure(cellH + (r ? gap : 0));
-        const rowTop = y;
+        ensure(cellH + gap);
+        const rowY = p.y;
+
         for (let c=0; c<2; c++) {
-          const idx = r*2+c;
-          if (idx >= embedded.length) continue;
-          const img = embedded[idx];
-          const maxW = cellW-8, maxH = cellH-8;
-          const scale = Math.min(maxW/img.width, maxH/img.height);
-          const w = img.width*scale, h = img.height*scale;
-          const cellX = M + c*(cellW+gap);
-          page.drawImage(img, {
-            x: cellX+(cellW-w)/2,
-            y: rowTop-h-(cellH-h)/2,
-            width:w, height:h
-          });
+          const idx = r * 2 + c;
+          if (idx >= loadedImages.length) continue;
+
+          const img = loadedImages[idx];
+          const x = M + c * (cellW + gap);
+          const scale = Math.min((cellW - 10) / img.naturalWidth, (cellH - 10) / img.naturalHeight);
+          const w = img.naturalWidth * scale;
+          const h = img.naturalHeight * scale;
+
+          p.ctx.drawImage(
+            img,
+            x + (cellW - w) / 2,
+            rowY + (cellH - h) / 2,
+            w,
+            h
+          );
         }
-        y -= cellH + gap;
+
+        p.y += cellH + gap;
       }
     }
 
-    sectionTitle('【写真掲載確認】');
-    for (const line of wrap('☑ 投稿する写真について、Instagramへの掲載許可を事前に確認済み', contentW, 9)) {
-      ensure(lineH);
-      drawText(line, M, y, 9);
-      y -= lineH;
+    drawSection('【写真掲載確認】');
+    const consentText = '✓ 投稿する写真について、Instagramへの掲載許可を事前に確認済み';
+    const consentLines = wrapText(consentText, CONTENT_W, 22);
+    for (const line of consentLines) {
+      ensure(34);
+      setFont(22, false);
+      p.ctx.fillText(line, M, p.y);
+      p.y += 34;
     }
 
     if (notes) {
-      sectionTitle('【備考】');
-      for (const line of wrap(notes, contentW, 9)) {
-        ensure(lineH);
-        drawText(line, M, y, 9);
-        y -= lineH;
+      drawSection('【備考】');
+      const noteLines = wrapText(notes, CONTENT_W - 20, 22);
+      for (const line of noteLines) {
+        ensure(34);
+        setFont(22, false);
+        p.ctx.fillText(line, M + 6, p.y);
+        p.y += 34;
       }
     }
 
-    sectionTitle('【委員長確認】');
-    infoRow('確認結果', '□ 投稿可　　　□ 要修正');
-    ensure(45);
-    const labelW = 105, h = 42;
-    page.drawRectangle({x:M,y:y-h,width:contentW,height:h,borderWidth:.6,borderColor:rgb(.55,.55,.55)});
-    page.drawLine({start:{x:M+labelW,y},end:{x:M+labelW,y:y-h},thickness:.6,color:rgb(.55,.55,.55)});
-    drawText('確認・修正事項', M+6, y-16, 8.5);
-    y -= h+15;
-    ensure(18);
-    drawText('確認日：　　　年　　月　　日　　署名：　　　　　　　　　', M, y, 8.5);
+    // 確認欄が途中で切れないよう、必要ならまとめて次ページへ
+    const confirmNeeded = 210;
+    if (p.y + confirmNeeded > PAGE_H - M) newPage();
+
+    drawSection('【委員長確認】');
+    drawInfoRow('確認結果', '□ 投稿可　　　□ 要修正');
+
+    const labelW = 250;
+    const h = 100;
+    ensure(h);
+    p.ctx.strokeRect(M, p.y, CONTENT_W, h);
+    p.ctx.beginPath();
+    p.ctx.moveTo(M + labelW, p.y);
+    p.ctx.lineTo(M + labelW, p.y + h);
+    p.ctx.stroke();
+
+    setFont(22, true);
+    p.ctx.fillText('確認・修正事項', M + 14, p.y + 18);
+    p.y += h + 28;
+
+    ensure(40);
+    setFont(21, false);
+    p.ctx.fillText('確認日：　　　年　　月　　日　　署名：　　　　　　　　　', M, p.y);
+
+    // CanvasページをそのままPDFページに貼る
+    const pdf = await PDFDocument.create();
+    for (const pg of pages) {
+      const dataUrl = pg.canvas.toDataURL('image/png');
+      const png = await pdf.embedPng(dataUrl);
+      const pdfPage = pdf.addPage([595.28, 841.89]);
+      pdfPage.drawImage(png, {x:0, y:0, width:595.28, height:841.89});
+    }
 
     const pdfBytes = await pdf.save();
-    downloadBlob(new Blob([pdfBytes], {type:'application/pdf'}),
-      sanitizeFileName(eventName) + '_Instagram投稿確認書.pdf');
+    downloadBlob(
+      new Blob([pdfBytes], {type:'application/pdf'}),
+      sanitizeFileName(eventName) + '_Instagram投稿確認書.pdf'
+    );
 
     status.className = 'status success';
     status.textContent = 'PDF確認書をダウンロードしました。';
