@@ -9,6 +9,8 @@
 
   <!-- docx.js: Wordファイルをブラウザ内だけで生成 -->
   <script src="https://unpkg.com/docx@9.5.1/dist/index.umd.cjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 
   <style>
     :root{
@@ -110,12 +112,13 @@
           <textarea class="notes" id="notes" placeholder="委員長に伝えることがあれば入力"></textarea>
         </div>
 
-        <button class="submit" id="submitBtn" type="submit">Word確認書をダウンロード</button>
+        <button class="submit" id="wordBtn" type="button">Wordをダウンロード</button>
+        <button class="submit" id="pdfBtn" type="button" style="margin-top:10px;background:#374151;">PDFをダウンロード</button>
         <div id="status" class="status"></div>
 
         <div class="privacy">
           ※ 入力した文章・写真をGoogle Driveへ保存する処理はありません。
-          Wordファイルはこの端末上で生成され、そのままダウンロードされます。
+          Word/PDFファイルはこの端末上で生成され、そのままダウンロードされます。
         </div>
       </form>
     </main>
@@ -126,13 +129,14 @@
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   WidthType, AlignmentType, HeadingLevel, ImageRun, BorderStyle,
-  VerticalAlign, ShadingType
+  VerticalAlign, ShadingType, TableLayoutType
 } = docx;
 
-document.getElementById('mainForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
+document.getElementById('wordBtn').addEventListener('click', generateWord);
+document.getElementById('pdfBtn').addEventListener('click', generatePdf);
 
-  const btn = document.getElementById('submitBtn');
+async function generateWord() {
+  const btn = document.getElementById('wordBtn');
   const status = document.getElementById('status');
 
   const eventName = document.getElementById('eventName').value.trim();
@@ -183,6 +187,7 @@ document.getElementById('mainForm').addEventListener('submit', async (e) => {
       }
 
       imageCells.push(new TableCell({
+        width:{size:PHOTO_CELL_W,type:WidthType.DXA},
         verticalAlign: VerticalAlign.CENTER,
         children,
         margins: { top: 100, bottom: 100, left: 100, right: 100 }
@@ -198,6 +203,14 @@ document.getElementById('mainForm').addEventListener('submit', async (e) => {
       insideVertical:{style:BorderStyle.SINGLE,size:1,color:'888888'}
     };
 
+    // A4縦・左右余白15mmで使える本文幅を固定（約 9300 DXA）
+    // iPhone版Word/Quick Lookではpercentage/autofit表が極端に潰れることがあるため、
+    // すべてDXA固定幅 + FIXEDレイアウトで作成する。
+    const PAGE_CONTENT_W = 9300;
+    const INFO_LABEL_W = 2200;
+    const INFO_VALUE_W = PAGE_CONTENT_W - INFO_LABEL_W;
+    const PHOTO_CELL_W = Math.floor(PAGE_CONTENT_W / 2);
+
     const infoRows = [
       ['イベント名', eventName],
       ['開催日', formatDate(eventDate)],
@@ -205,10 +218,14 @@ document.getElementById('mainForm').addEventListener('submit', async (e) => {
     ].map(([a,b]) => new TableRow({
       children:[
         new TableCell({
+          width:{size:INFO_LABEL_W,type:WidthType.DXA},
           shading:{fill:'EEEEEE',type:ShadingType.CLEAR},
           children:[new Paragraph({children:[new TextRun({text:a,bold:true})]})]
         }),
-        new TableCell({children:[new Paragraph(b || '')]})
+        new TableCell({
+          width:{size:INFO_VALUE_W,type:WidthType.DXA},
+          children:[new Paragraph(b || '')]
+        })
       ]
     }));
 
@@ -222,7 +239,9 @@ document.getElementById('mainForm').addEventListener('submit', async (e) => {
       new Paragraph(''),
 
       new Table({
-        width:{size:100,type:WidthType.PERCENTAGE},
+        width:{size:PAGE_CONTENT_W,type:WidthType.DXA},
+        layout:TableLayoutType.FIXED,
+        columnWidths:[INFO_LABEL_W, INFO_VALUE_W],
         borders,
         rows:infoRows
       }),
@@ -230,12 +249,15 @@ document.getElementById('mainForm').addEventListener('submit', async (e) => {
       new Paragraph(''),
       sectionTitle('【Instagram 投稿予定文】'),
       new Table({
-        width:{size:100,type:WidthType.PERCENTAGE},
+        width:{size:PAGE_CONTENT_W,type:WidthType.DXA},
+        layout:TableLayoutType.FIXED,
+        columnWidths:[PAGE_CONTENT_W],
         borders,
         rows:[
           new TableRow({
             children:[
               new TableCell({
+                width:{size:PAGE_CONTENT_W,type:WidthType.DXA},
                 children: postText.split(/\r?\n/).map(line => new Paragraph(line || ' '))
               })
             ]
@@ -246,7 +268,9 @@ document.getElementById('mainForm').addEventListener('submit', async (e) => {
       new Paragraph(''),
       sectionTitle('【投稿予定写真】'),
       new Table({
-        width:{size:100,type:WidthType.PERCENTAGE},
+        width:{size:PAGE_CONTENT_W,type:WidthType.DXA},
+        layout:TableLayoutType.FIXED,
+        columnWidths:[PHOTO_CELL_W, PHOTO_CELL_W],
         borders,
         rows:[
           new TableRow({children:[imageCells[0],imageCells[1]]}),
@@ -271,25 +295,35 @@ document.getElementById('mainForm').addEventListener('submit', async (e) => {
       new Paragraph(''),
       sectionTitle('【委員長確認】'),
       new Table({
-        width:{size:100,type:WidthType.PERCENTAGE},
+        width:{size:PAGE_CONTENT_W,type:WidthType.DXA},
+        layout:TableLayoutType.FIXED,
+        columnWidths:[2200, PAGE_CONTENT_W - 2200],
         borders,
         rows:[
           new TableRow({
             children:[
               new TableCell({
+                width:{size:2200,type:WidthType.DXA},
                 shading:{fill:'EEEEEE',type:ShadingType.CLEAR},
                 children:[new Paragraph({children:[new TextRun({text:'確認結果',bold:true})]})]
               }),
-              new TableCell({children:[new Paragraph('□ 投稿可　　　□ 要修正')]})
+              new TableCell({
+                width:{size:PAGE_CONTENT_W - 2200,type:WidthType.DXA},
+                children:[new Paragraph('□ 投稿可　　　□ 要修正')]
+              })
             ]
           }),
           new TableRow({
             children:[
               new TableCell({
+                width:{size:2200,type:WidthType.DXA},
                 shading:{fill:'EEEEEE',type:ShadingType.CLEAR},
                 children:[new Paragraph({children:[new TextRun({text:'確認・修正事項',bold:true})]})]
               }),
-              new TableCell({children:[new Paragraph(''),new Paragraph('')]})
+              new TableCell({
+                width:{size:PAGE_CONTENT_W - 2200,type:WidthType.DXA},
+                children:[new Paragraph(''),new Paragraph('')]
+              })
             ]
           })
         ]
@@ -303,7 +337,15 @@ document.getElementById('mainForm').addEventListener('submit', async (e) => {
 
     const word = new Document({
       creator:'情宣部 Instagram投稿確認',
-      sections:[{children}]
+      sections:[{
+        properties:{
+          page:{
+            size:{width:11906,height:16838},
+            margin:{top:850,right:850,bottom:850,left:850}
+          }
+        },
+        children
+      }]
     });
 
     const blob = await Packer.toBlob(word);
@@ -319,9 +361,219 @@ document.getElementById('mainForm').addEventListener('submit', async (e) => {
     status.textContent = 'Word作成に失敗しました。\n' + (err?.message || err);
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Word確認書をダウンロード';
+    btn.textContent = 'Wordをダウンロード';
   }
-});
+}
+
+
+async function generatePdf() {
+  const btn = document.getElementById('pdfBtn');
+  const status = document.getElementById('status');
+
+  const eventName = document.getElementById('eventName').value.trim();
+  const eventDate = document.getElementById('eventDate').value;
+  const authorName = document.getElementById('authorName').value.trim();
+  const postText = document.getElementById('postText').value.trim();
+  const notes = document.getElementById('notes').value.trim();
+  const consent = document.getElementById('photoConsent').checked;
+
+  if (!eventName || !postText || !consent) {
+    status.className = 'status error';
+    status.textContent = '必須項目を確認してください。';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'PDF作成中…';
+  status.className = 'status loading';
+  status.textContent = 'この端末内でPDFを作成しています…';
+
+  try {
+    const { PDFDocument, rgb } = PDFLib;
+    const pdf = await PDFDocument.create();
+    pdf.registerFontkit(fontkit);
+
+    // Japanese font loaded only for rendering; user input/photos are not uploaded by this code.
+    const fontUrl = 'https://fonts.gstatic.com/s/notosansjp/v54/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFPYk756wwr4v0qHnANADNsISRDl2PRkiiWsg.0.woff2';
+    const fontBytes = await fetch(fontUrl).then(r => {
+      if (!r.ok) throw new Error('日本語フォントを読み込めませんでした。');
+      return r.arrayBuffer();
+    });
+    const font = await pdf.embedFont(fontBytes);
+
+    const A4_W = 595.28, A4_H = 841.89;
+    const M = 42;
+    const contentW = A4_W - M * 2;
+    const fontSize = 10;
+    const lineH = 15;
+
+    let page, y;
+    function newPage() {
+      page = pdf.addPage([A4_W, A4_H]);
+      y = A4_H - M;
+    }
+    function ensure(h) {
+      if (y - h < M) newPage();
+    }
+    function text(str, x, yy, size=fontSize) {
+      page.drawText(String(str ?? ''), {x, y:yy, size, font, color:rgb(0,0,0)});
+    }
+    function wrap(str, maxWidth, size=fontSize) {
+      const out = [];
+      for (const para of String(str ?? '').split(/\r?\n/)) {
+        if (!para) { out.push(''); continue; }
+        let line = '';
+        for (const ch of para) {
+          const test = line + ch;
+          if (font.widthOfTextAtSize(test, size) > maxWidth && line) {
+            out.push(line); line = ch;
+          } else line = test;
+        }
+        out.push(line);
+      }
+      return out;
+    }
+    function section(label) {
+      ensure(28);
+      y -= 8;
+      text(label, M, y, 11);
+      y -= 18;
+    }
+    function row(label, value) {
+      const labelW = 120;
+      const h = 28;
+      ensure(h);
+      page.drawRectangle({x:M,y:y-h,width:contentW,height:h,borderWidth:0.7,borderColor:rgb(.5,.5,.5)});
+      page.drawLine({start:{x:M+labelW,y},end:{x:M+labelW,y:y-h},thickness:.7,color:rgb(.5,.5,.5)});
+      text(label, M+6, y-18, 9);
+      text(value || '', M+labelW+6, y-18, 9);
+      y -= h;
+    }
+
+    newPage();
+    const title = 'Instagram 投稿確認書';
+    const titleW = font.widthOfTextAtSize(title, 18);
+    text(title, (A4_W-titleW)/2, y, 18);
+    y -= 22;
+    const dept = '情宣部';
+    const deptW = font.widthOfTextAtSize(dept, 11);
+    text(dept, (A4_W-deptW)/2, y, 11);
+    y -= 28;
+
+    row('イベント名', eventName);
+    row('開催日', formatDate(eventDate));
+    row('作成者', authorName);
+
+    section('【Instagram 投稿予定文】');
+    const postLines = wrap(postText, contentW-12, 10);
+    const postH = Math.max(45, postLines.length * lineH + 12);
+    ensure(Math.min(postH, A4_H-M*2));
+    // Long text can continue naturally across pages.
+    if (postH <= y-M) {
+      page.drawRectangle({x:M,y:y-postH,width:contentW,height:postH,borderWidth:.7,borderColor:rgb(.5,.5,.5)});
+      let ty = y-17;
+      postLines.forEach(line => { text(line, M+6, ty, 10); ty -= lineH; });
+      y -= postH;
+    } else {
+      for (const line of postLines) {
+        ensure(lineH+4);
+        text(line, M+4, y, 10);
+        y -= lineH;
+      }
+    }
+
+    section('【投稿予定写真】');
+    const files = [];
+    for (let i=1;i<=4;i++) {
+      const f = document.getElementById('photo'+i).files[0];
+      if (f) files.push(f);
+    }
+
+    for (const f of files) {
+      ensure(205);
+      const bytes = await f.arrayBuffer();
+      let img;
+      if (f.type === 'image/png') {
+        img = await pdf.embedPng(bytes);
+      } else if (f.type === 'image/jpeg' || f.type === 'image/jpg') {
+        img = await pdf.embedJpg(bytes);
+      } else {
+        // Convert browser-readable formats such as HEIC preview-compatible inputs to JPEG via canvas when possible.
+        const dataUrl = await imageFileToJpegDataUrl(f);
+        img = await pdf.embedJpg(dataUrl);
+      }
+      const maxW = contentW;
+      const maxH = 190;
+      const scale = Math.min(maxW/img.width, maxH/img.height, 1);
+      const w = img.width*scale, h = img.height*scale;
+      page.drawImage(img,{x:M+(contentW-w)/2,y:y-h,width:w,height:h});
+      y -= h + 12;
+    }
+    if (!files.length) {
+      text('写真なし', M, y, 10);
+      y -= 20;
+    }
+
+    section('【写真掲載確認】');
+    for (const line of wrap('✓ 投稿する写真について、Instagramへの掲載許可を事前に確認済み', contentW, 10)) {
+      ensure(lineH);
+      text(line, M, y, 10); y -= lineH;
+    }
+
+    if (notes) {
+      section('【備考】');
+      for (const line of wrap(notes, contentW, 10)) {
+        ensure(lineH);
+        text(line, M, y, 10); y -= lineH;
+      }
+    }
+
+    section('【委員長確認】');
+    row('確認結果', '□ 投稿可　　　□ 要修正');
+    ensure(55);
+    page.drawRectangle({x:M,y:y-48,width:contentW,height:48,borderWidth:.7,borderColor:rgb(.5,.5,.5)});
+    page.drawLine({start:{x:M+120,y},end:{x:M+120,y:y-48},thickness:.7,color:rgb(.5,.5,.5)});
+    text('確認・修正事項', M+6, y-19, 9);
+    y -= 60;
+    ensure(20);
+    text('確認日：　　　年　　月　　日　　署名：　　　　　　　　　', M, y, 9);
+
+    const bytes = await pdf.save();
+    const blob = new Blob([bytes], {type:'application/pdf'});
+    downloadBlob(blob, sanitizeFileName(eventName) + '_Instagram投稿確認書.pdf');
+
+    status.className = 'status success';
+    status.textContent = 'PDF確認書をダウンロードしました。';
+  } catch (err) {
+    console.error(err);
+    status.className = 'status error';
+    status.textContent = 'PDF作成に失敗しました。\n' + (err?.message || err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'PDFをダウンロード';
+  }
+}
+
+function imageFileToJpegDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img,0,0);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg',0.9));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('PDF用に画像を変換できませんでした: ' + file.name));
+    };
+    img.src = url;
+  });
+}
 
 function sectionTitle(text) {
   return new Paragraph({children:[new TextRun({text,bold:true})]});
@@ -356,8 +608,9 @@ async function prepareImage(file) {
   const arrayBuffer = await file.arrayBuffer();
   const dims = await getImageDimensions(file);
 
-  const maxW = 300;
-  const maxH = 210;
+  // 2列写真表に収まるよう少し小さめに固定
+  const maxW = 250;
+  const maxH = 175;
   const scale = Math.min(maxW / dims.width, maxH / dims.height, 1);
 
   let type = 'jpg';
